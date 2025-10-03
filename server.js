@@ -8,14 +8,22 @@ const app = express();
 const port = process.env.PORT || 3001;
 const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 
-// ✅ KONFIGURASI CORS (update)
+const allowedOrigins = [
+  "https://dashboard-tiket-app.vercel.app",
+];
+
 app.use(cors({
-  origin: [
-    "https://dashboard-tiket-app.vercel.app",   // ganti dengan domain Vercel asli
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  origin: function (origin, callback) {
+    // kalau tidak ada origin (misal dari Postman), langsung allow
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = "Origin tidak diizinkan oleh CORS policy";
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"]
 }));
 
 app.use(express.json());
