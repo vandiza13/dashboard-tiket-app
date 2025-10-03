@@ -5,18 +5,22 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-// PERUBAHAN KRUSIAL: Gunakan port dari Railway, atau 3001 jika di lokal
 const port = process.env.PORT || 3001;
 const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 
+// ✅ KONFIGURASI CORS (update)
 app.use(cors({
-  origin: "https://dashboard-tiket-app.vercel.app", // ganti sesuai domain Vercel kamu
+  origin: [
+    "https://dashboard-tiket-app.vercel.app",   // ganti dengan domain Vercel asli
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
 app.use(express.json());
 
-// Konfigurasi Koneksi Database (versi deployment)
+// === KONEKSI DATABASE ===
 const db = mysql.createConnection({
   host: process.env.MYSQLHOST || 'localhost',
   user: process.env.MYSQLUSER || 'root',
@@ -33,17 +37,15 @@ db.connect(err => {
   console.log('✅ Successfully connected to the database.');
 });
 
-
-// === ENDPOINT DEBUGGING "HEALTH CHECK" ===
+// === HEALTH CHECK ===
 app.get('/', (req, res) => {
   res.json({
     message: "Server is running!",
-    version: "2.1-port-fix" // Versi baru untuk penanda
+    version: "2.2-cors-fix"
   });
 });
 
-
-// === API UNTUK AUTENTIKASI ===
+// === AUTH API ===
 app.post('/api/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -84,7 +86,7 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// === MIDDLEWARE UNTUK PROTEKSI API ===
+// === MIDDLEWARE JWT ===
 const protect = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -105,7 +107,7 @@ const restrictTo = (...roles) => {
   };
 };
 
-// === API TIKET DENGAN PROTEKSI PERAN ===
+// === API TIKET ===
 app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res) => {
   const sql = "SELECT * FROM tickets ORDER BY tiket_time ASC";
   db.query(sql, (err, results) => {
@@ -142,6 +144,5 @@ app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => {
 });
 
 app.listen(port, () => {
-  // Pesan log diubah agar menampilkan port yang benar
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
