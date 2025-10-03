@@ -5,7 +5,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const port = 3001;
+// PERUBAHAN KRUSIAL: Gunakan port dari Railway, atau 3001 jika di lokal
+const port = process.env.PORT || 3001;
 const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 
 app.use(cors());
@@ -33,7 +34,7 @@ db.connect(err => {
 app.get('/', (req, res) => {
   res.json({
     message: "Server is running!",
-    version: "2.0-with-auth" // Penanda versi kode
+    version: "2.1-port-fix" // Versi baru untuk penanda
   });
 });
 
@@ -137,5 +138,6 @@ app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Server backend berjalan di http://localhost:${port}`);
+  // Pesan log diubah agar menampilkan port yang benar
+  console.log(`🚀 Server backend berjalan di port ${port}`);
 });
