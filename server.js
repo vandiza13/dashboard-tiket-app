@@ -9,7 +9,11 @@ const app = express();
 const port = process.env.PORT || 3001;
 const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 
-app.use(cors());
+app.use(cors({
+  origin: "https://dashboard-tiket-app.vercel.app", // ganti sesuai domain Vercel kamu
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Konfigurasi Koneksi Database (versi deployment)
