@@ -5,14 +5,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-// PERUBAHAN KRUSIAL: Gunakan port dari Railway, atau 3001 jika di lokal
 const port = process.env.PORT || 3001;
 const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 
 app.use(cors());
 app.use(express.json());
 
-// Konfigurasi Koneksi Database (versi deployment)
 const db = mysql.createConnection({
   host: process.env.MYSQLHOST || 'localhost',
   user: process.env.MYSQLUSER || 'root',
@@ -21,12 +19,48 @@ const db = mysql.createConnection({
   port: process.env.MYSQLPORT || 3306
 });
 
+// FUNGSI BARU UNTUK MEMBUAT AKUN DEFAULT
+async function seedDatabase() {
+  const usersToSeed = [
+    { username: 'admin', password: 'admin123', role: 'Admin' },
+    { username: 'user', password: 'password123', role: 'User' },
+    { username: 'view', password: 'password123', role: 'View' }
+  ];
+
+  for (const userData of usersToSeed) {
+    // Cek dulu apakah username sudah ada
+    const checkSql = "SELECT * FROM users WHERE username = ?";
+    db.query(checkSql, [userData.username], async (err, results) => {
+      if (err) {
+        console.error(`Error checking user ${userData.username}:`, err);
+        return;
+      }
+      // Jika user belum ada, buat baru
+      if (results.length === 0) {
+        console.log(`Creating user: ${userData.username}`);
+        const hash = await bcrypt.hash(userData.password, 10);
+        const insertSql = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)";
+        db.query(insertSql, [userData.username, hash, userData.role], (err, result) => {
+          if (err) {
+            console.error(`Error creating user ${userData.username}:`, err);
+          } else {
+            console.log(`✅ User ${userData.username} created successfully.`);
+          }
+        });
+      }
+    });
+  }
+}
+
 db.connect(err => {
   if (err) {
     console.error('❌ Error connecting to database:', err);
     return;
   }
   console.log('✅ Successfully connected to the database.');
+  
+  // Panggil fungsi seeding setelah koneksi berhasil
+  seedDatabase();
 });
 
 
@@ -34,110 +68,39 @@ db.connect(err => {
 app.get('/', (req, res) => {
   res.json({
     message: "Server is running!",
-    version: "2.1-port-fix" // Versi baru untuk penanda
+    version: "2.1-port-fix"
   });
 });
 
 
 // === API UNTUK AUTENTIKASI ===
-app.post('/api/register', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username dan password diperlukan' });
-  }
-  bcrypt.hash(password, 10, (err, hash) => {
-    if (err) { return res.status(500).json({ error: 'Gagal mengenkripsi password' }); }
-    const sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
-    db.query(sql, [username, hash], (err, result) => {
-      if (err) {
-        if (err.code === 'ER_DUP_ENTRY') { return res.status(409).json({ error: 'Username sudah digunakan' }); }
-        return res.status(500).json({ error: 'Gagal mendaftarkan pengguna' });
-      }
-      res.status(201).json({ success: true, message: 'Registrasi berhasil' });
-    });
-  });
-});
+// ... (Kode API Register dan Login tidak berubah) ...
+app.post('/api/register', (req, res) => { /* ... */ });
+app.post('/api/login', (req, res) => { /* ... */ });
 
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username dan password diperlukan' });
-  }
-  const sql = "SELECT * FROM users WHERE username = ?";
-  db.query(sql, [username], (err, results) => {
-    if (err || results.length === 0) {
-      return res.status(401).json({ error: 'Username atau password salah' });
-    }
-    const user = results[0];
-    bcrypt.compare(password, user.password_hash, (err, isMatch) => {
-      if (err || !isMatch) {
-        return res.status(401).json({ error: 'Username atau password salah' });
-      }
-      const tokenPayload = { userId: user.id, username: user.username, role: user.role };
-      const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '8h' });
-      res.json({ success: true, message: 'Login berhasil', token: token, role: user.role });
-    });
-  });
-});
 
 // === MIDDLEWARE UNTUK PROTEKSI API ===
-const protect = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) { return res.status(401).json({ error: 'Akses ditolak, tidak ada token' }); }
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) { return res.status(403).json({ error: 'Token tidak valid' }); }
-    req.user = user;
-    next();
-  });
-};
+// ... (Kode Middleware tidak berubah) ...
+const protect = (req, res, next) => { /* ... */ };
+const restrictTo = (...roles) => { /* ... */ };
 
-const restrictTo = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Anda tidak memiliki izin untuk melakukan aksi ini' });
-    }
-    next();
-  };
-};
 
 // === API TIKET DENGAN PROTEKSI PERAN ===
-app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res) => {
-  const sql = "SELECT * FROM tickets ORDER BY tiket_time ASC";
-  db.query(sql, (err, results) => {
-    if (err) { return res.status(500).json({ error: 'Failed to fetch tickets' }); }
-    res.json(results);
-  });
-});
+// ... (Semua API Tiket tidak berubah) ...
+app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res) => { /* ... */ });
+app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => { /* ... */ });
+app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => { /* ... */ });
+app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => { /* ... */ });
 
-app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => {
-  const { id_tiket, deskripsi, tiket_time } = req.body;
-  if (!id_tiket || !deskripsi || !tiket_time) { return res.status(400).json({ error: 'ID Tiket, Deskripsi, dan Waktu Tiket tidak boleh kosong' }); }
-  const sql = "INSERT INTO tickets (id_tiket, deskripsi, tiket_time, status) VALUES (?, ?, ?, 'OPEN')";
-  db.query(sql, [id_tiket, deskripsi, tiket_time], (err, result) => {
-    if (err) { return res.status(500).json({ error: 'Gagal menyimpan tiket' }); }
-    res.status(201).json({ success: true, message: 'Tiket berhasil dibuat' });
-  });
-});
-
-app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => {
-  const { status, teknisi, update_progres } = req.body;
-  const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ? WHERE id = ?";
-  db.query(sql, [status, teknisi, update_progres, req.params.id], (err, result) => {
-    if (err) { return res.status(500).json({ error: 'Gagal meng-update tiket' }); }
-    res.json({ success: true, message: 'Tiket berhasil di-update' });
-  });
-});
-
-app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => {
-  const sql = "DELETE FROM tickets WHERE id = ?";
-  db.query(sql, [req.params.id], (err, result) => {
-    if (err) { return res.status(500).json({ error: 'Gagal menghapus tiket' }); }
-    res.json({ success: true, message: 'Tiket berhasil dihapus' });
-  });
-});
 
 app.listen(port, () => {
-  // Pesan log diubah agar menampilkan port yang benar
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
+
+// --- Kode lengkap untuk fungsi yang tidak diubah ---
+app.post('/api/register', (req, res) => { const { username, password } = req.body; if (!username || !password) { return res.status(400).json({ error: 'Username dan password diperlukan' }); } bcrypt.hash(password, 10, (err, hash) => { if (err) { return res.status(500).json({ error: 'Gagal mengenkripsi password' }); } const sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)"; db.query(sql, [username, hash], (err, result) => { if (err) { if (err.code === 'ER_DUP_ENTRY') { return res.status(409).json({ error: 'Username sudah digunakan' }); } return res.status(500).json({ error: 'Gagal mendaftarkan pengguna' }); } res.status(201).json({ success: true, message: 'Registrasi berhasil' }); }); }); });
+app.post('/api/login', (req, res) => { const { username, password } = req.body; if (!username || !password) { return res.status(400).json({ error: 'Username dan password diperlukan' }); } const sql = "SELECT * FROM users WHERE username = ?"; db.query(sql, [username], (err, results) => { if (err || results.length === 0) { return res.status(401).json({ error: 'Username atau password salah' }); } const user = results[0]; bcrypt.compare(password, user.password_hash, (err, isMatch) => { if (err || !isMatch) { return res.status(401).json({ error: 'Username atau password salah' }); } const tokenPayload = { userId: user.id, username: user.username, role: user.role }; const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '8h' }); res.json({ success: true, message: 'Login berhasil', token: token, role: user.role }); }); }); });
+app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res) => { const sql = "SELECT * FROM tickets ORDER BY tiket_time ASC"; db.query(sql, (err, results) => { if (err) { return res.status(500).json({ error: 'Failed to fetch tickets' }); } res.json(results); }); });
+app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => { const { id_tiket, deskripsi, tiket_time } = req.body; if (!id_tiket || !deskripsi || !tiket_time) { return res.status(400).json({ error: 'ID Tiket, Deskripsi, dan Waktu Tiket tidak boleh kosong' }); } const sql = "INSERT INTO tickets (id_tiket, deskripsi, tiket_time, status) VALUES (?, ?, ?, 'OPEN')"; db.query(sql, [id_tiket, deskripsi, tiket_time], (err, result) => { if (err) { return res.status(500).json({ error: 'Gagal menyimpan tiket' }); } res.status(201).json({ success: true, message: 'Tiket berhasil dibuat' }); }); });
+app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => { const { status, teknisi, update_progres } = req.body; const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ? WHERE id = ?"; db.query(sql, [status, teknisi, update_progres, req.params.id], (err, result) => { if (err) { return res.status(500).json({ error: 'Gagal meng-update tiket' }); } res.json({ success: true, message: 'Tiket berhasil di-update' }); }); });
+app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => { const sql = "DELETE FROM tickets WHERE id = ?"; db.query(sql, [req.params.id], (err, result) => { if (err) { return res.status(500).json({ error: 'Gagal menghapus tiket' }); } res.json({ success: true, message: 'Tiket berhasil dihapus' }); }); });
