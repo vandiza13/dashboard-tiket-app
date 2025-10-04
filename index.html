@@ -107,8 +107,40 @@
             }
         }
 
-        function filterTickets() { const searchTerm = document.getElementById('searchInput').value.toLowerCase(); const filteredTickets = ticketsCache.filter(t => (t.id_tiket||'').toLowerCase().includes(searchTerm) || (t.deskripsi||'').toLowerCase().includes(searchTerm) || (t.status||'').toLowerCase().includes(searchTerm) || (t.teknisi||'').toLowerCase().includes(searchTerm)); renderTable(filteredTickets); }
-        async function handleFormSubmit() { const d = { id_tiket: document.getElementById('id_tiket').value, tiket_time: document.getElementById('tiket_time').value, deskripsi: document.getElementById('deskripsi').value }; if (!d.id_tiket || !d.deskripsi || !d.tiket_time) { alert('Semua field harus diisi.'); return; } try { const r = await fetch(API_URL, { method: 'POST', headers: authHeaders, body: JSON.stringify(d) }); if (!r.ok) throw new Error('Gagal mengirim data.'); addTicketModal.hide(); document.getElementById('addTicketForm').reset(); fetchTickets(); } catch (e) { alert('Terjadi kesalahan.'); } }
+        function filterTickets() { 
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase(); 
+            const filteredTickets = ticketsCache.filter(t => (t.id_tiket||'').toLowerCase().includes(searchTerm) || (t.deskripsi||'').toLowerCase().includes(searchTerm) || (t.status||'').toLowerCase().includes(searchTerm) || (t.teknisi||'').toLowerCase().includes(searchTerm)); renderTable(filteredTickets); }
+
+        async function handleFormSubmit() {
+            const d = {
+                id_tiket: document.getElementById('id_tiket').value,
+                tiket_time: document.getElementById('tiket_time').value,
+                deskripsi: document.getElementById('deskripsi').value
+                };
+                    if (!d.id_tiket || !d.deskripsi || !d.tiket_time) {
+                        alert('Semua field harus diisi.');
+                        return;
+                }
+                    try {
+            const r = await fetch(API_URL, {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify(d)
+                });
+            const result = await r.json();
+                    if (!r.ok) {
+            // tampilkan pesan error spesifik
+                    alert(result.error || 'Gagal mengirim data.');
+                    return;
+                }
+                    addTicketModal.hide();
+                    document.getElementById('addTicketForm').reset();
+                    fetchTickets();
+                } catch (e) {
+                    alert('Terjadi kesalahan koneksi ke server.');
+                    }
+        }
+
         function openUpdateModal(t) { document.getElementById('update_ticket_id').value = t.id; document.getElementById('update_id_tiket_display').value = t.id_tiket; document.getElementById('update_status').value = t.status; document.getElementById('update_teknisi').value = t.teknisi || ''; document.getElementById('update_progres').value = t.update_progres || ''; updateTicketModal.show(); }
         async function handleUpdateSubmit() { const id = document.getElementById('update_ticket_id').value; const d = { status: document.getElementById('update_status').value, teknisi: document.getElementById('update_teknisi').value, update_progres: document.getElementById('update_progres').value }; try { const r = await fetch(`${API_URL}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) }); if (!r.ok) throw new Error('Gagal update data.'); updateTicketModal.hide(); fetchTickets(); } catch (e) { alert('Gagal menyimpan perubahan.'); } }
         function confirmDeleteTicket(id) { if (confirm("Yakin ingin menghapus tiket ini?")) { deleteTicket(id); } }
