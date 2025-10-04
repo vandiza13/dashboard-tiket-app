@@ -119,11 +119,25 @@ app.post('/api/tickets', (req, res) => {
   });
 });
 
+// PUT: Meng-update tiket berdasarkan ID
 app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => {
+  const ticketId = req.params.id;
   const { status, teknisi, update_progres } = req.body;
-  const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ? WHERE id = ?";
-  db.query(sql, [status, teknisi, update_progres, req.params.id], (err, result) => {
-    if (err) { return res.status(500).json({ error: 'Gagal meng-update tiket' }); }
+  
+  // Ambil username dari token JWT yang sudah diverifikasi oleh middleware 'protect'
+  const updatedBy = req.user.username; 
+
+  const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ?, updated_by = ? WHERE id = ?";
+  const values = [status, teknisi, update_progres, updatedBy, ticketId]; // Tambahkan updatedBy ke values
+
+  db.query(sql, values, (err, result) => {
+    if (err) { 
+      console.error("Error updating ticket:", err);
+      return res.status(500).json({ error: 'Gagal meng-update tiket di database' }); 
+    }
+    if (result.affectedRows === 0) { 
+      return res.status(404).json({ error: 'Tiket tidak ditemukan' }); 
+    }
     res.json({ success: true, message: 'Tiket berhasil di-update' });
   });
 });
