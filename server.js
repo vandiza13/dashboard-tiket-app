@@ -13,10 +13,10 @@ app.use(express.json());
 
 // Konfigurasi Koneksi Database (versi deployment)
 const db = mysql.createConnection({
-  host: process.env.MYSQLHOST || 'localhost',
+  host: process.env.MYSQLHOST || 'mysql.railway.internal',
   user: process.env.MYSQLUSER || 'root',
-  password: process.env.MYSQLPASSWORD || '',
-  database: process.env.MYSQLDATABASE || 'tiket_db',
+  password: process.env.MYSQLPASSWORD || 'pgcVhHDrauwKnifjlFsAkgsOopIcEQGQ',
+  database: process.env.MYSQLDATABASE || 'railway',
   port: process.env.MYSQLPORT || 3306
 });
 
