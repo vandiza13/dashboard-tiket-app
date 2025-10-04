@@ -100,12 +100,21 @@ app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res)
   });
 });
 
-app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => {
-  const { id_tiket, deskripsi, tiket_time } = req.body;
-  if (!id_tiket || !deskripsi || !tiket_time) { return res.status(400).json({ error: 'ID Tiket, Deskripsi, dan Waktu Tiket tidak boleh kosong' }); }
-  const sql = "INSERT INTO tickets (id_tiket, deskripsi, tiket_time, status) VALUES (?, ?, ?, 'OPEN')";
-  db.query(sql, [id_tiket, deskripsi, tiket_time], (err, result) => {
-    if (err) { return res.status(500).json({ error: 'Gagal menyimpan tiket' }); }
+app.post('/api/tickets', (req, res) => {
+  const { id_tiket, deskripsi, status, teknisi, update_progres } = req.body;
+
+  if (!id_tiket || !deskripsi) {
+    return res.status(400).json({ error: 'id_tiket dan deskripsi wajib diisi' });
+  }
+
+  const sql = "INSERT INTO tickets (id_tiket, tiket_time, deskripsi, status, teknisi, update_progres) VALUES (?, NOW(), ?, ?, ?, ?)";
+  db.query(sql, [id_tiket, deskripsi, status || 'Open', teknisi || null, update_progres || null], (err, result) => {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: `id_tiket ${id_tiket} sudah ada di database` });
+      }
+      return res.status(500).json({ error: 'Gagal membuat tiket' });
+    }
     res.status(201).json({ success: true, message: 'Tiket berhasil dibuat' });
   });
 });
