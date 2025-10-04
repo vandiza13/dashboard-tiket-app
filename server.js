@@ -20,48 +20,6 @@ const db = mysql.createConnection({
   port: process.env.MYSQLPORT || 3306
 });
 
-// Fungsi untuk membuat akun default jika belum ada
-async function seedDatabase() {
-  const usersToSeed = [
-    { username: 'admin', password: 'admin123', role: 'Admin' },
-    { username: 'user', password: 'password123', role: 'User' },
-    { username: 'view', password: 'password123', role: 'View' }
-  ];
-
-  for (const userData of usersToSeed) {
-    const checkSql = "SELECT * FROM users WHERE username = ?";
-    db.query(checkSql, [userData.username], async (err, results) => {
-      if (err) {
-        console.error(`Error checking user ${userData.username}:`, err);
-        return;
-      }
-      if (results.length === 0) {
-        console.log(`Creating user: ${userData.username}`);
-        const hash = await bcrypt.hash(userData.password, 10);
-        const insertSql = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)";
-        db.query(insertSql, [userData.username, hash, userData.role], (err, result) => {
-          if (err) {
-            console.error(`Error creating user ${userData.username}:`, err);
-          } else {
-            console.log(`✅ User ${userData.username} created successfully.`);
-          }
-        });
-      }
-    });
-  }
-}
-
-// Terhubung ke database dan jalankan seeding
-db.connect(err => {
-  if (err) {
-    console.error('❌ Error connecting to database:', err);
-    return;
-  }
-  console.log('✅ Successfully connected to the database.');
-  seedDatabase();
-});
-
-
 // === ENDPOINT DEBUGGING "HEALTH CHECK" ===
 app.get('/', (req, res) => {
   res.json({
