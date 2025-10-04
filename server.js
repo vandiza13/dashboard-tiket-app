@@ -121,17 +121,14 @@ app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => {
   });
 });
 
-// PUT: Meng-update tiket berdasarkan ID
+// PUT: Meng-update tiket berdasarkan ID 
 app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => {
   const ticketId = req.params.id;
   const { status, teknisi, update_progres } = req.body;
-  
-  // Ambil username dari token JWT yang sudah diverifikasi oleh middleware 'protect'
-  const updatedBy = req.user.username; 
-
-  const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ?, updated_by = ? WHERE id = ?";
-  const values = [status, teknisi, update_progres, updatedBy, ticketId]; // Tambahkan updatedBy ke values
-
+  const updatedBy = req.user.username;
+  const lastUpdateTime = new Date(); 
+  const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ?, updated_by = ?, last_update_time = ? WHERE id = ?";
+  const values = [status, teknisi, update_progres, updatedBy, lastUpdateTime, ticketId]; // Tambahkan lastUpdateTime
   db.query(sql, values, (err, result) => {
     if (err) { 
       console.error("Error updating ticket:", err);
