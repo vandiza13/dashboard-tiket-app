@@ -13,11 +13,12 @@ app.use(express.json());
 
 // Konfigurasi Koneksi Database (versi deployment)
 const db = mysql.createConnection({
-  host: process.env.MYSQLHOST || 'mysql.railway.internal',
+  host: process.env.MYSQLHOST || 'localhost',
   user: process.env.MYSQLUSER || 'root',
-  password: process.env.MYSQLPASSWORD || 'pgcVhHDrauwKnifjlFsAkgsOopIcEQGQ',
-  database: process.env.MYSQLDATABASE || 'railway',
-  port: process.env.MYSQLPORT || 3306
+  password: process.env.MYSQLPASSWORD || '',
+  database: process.env.MYSQLDATABASE || 'tiket_db',
+  port: process.env.MYSQLPORT || 3306,
+  timezone: '+07:00' // Tambahkan baris ini untuk zona waktu WIB
 });
 
 // === ENDPOINT DEBUGGING "HEALTH CHECK" ===
