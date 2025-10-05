@@ -151,6 +151,60 @@
         function formatDateTime(s) { if (!s) return ''; return new Date(s).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', hour12: false }); }
         function getStatusBadge(s) { s = s ? s.toUpperCase() : ''; if (s === 'OPEN') return 'bg-danger'; if (s === 'SC') return 'bg-primary'; if (s === 'CLOSED') return 'bg-success'; return 'bg-secondary'; }
         function getStatusIcon(s) { s = s ? s.toUpperCase() : ''; if (s === 'OPEN') return '❌'; if (s === 'SC') return '🟡'; if (s === 'CLOSED') return '✅'; return '❓'; }
+    
+        function applyRoles() {
+    const userRole = localStorage.getItem('userRole');
+    // Tombol "Tambah Tiket" disembunyikan untuk 'View'
+    if (userRole === 'View') {
+        document.getElementById('add-ticket-btn').style.display = 'none';
+    }
+    // Tombol "Daftar Teknisi" sekarang terlihat untuk semua role, jadi tidak ada yang disembunyikan di sini
+}
+
+function renderTechniciansTable(technicians) {
+    const tbody = document.getElementById('technicians-table-body');
+    const addForm = document.getElementById('addTechnicianForm');
+    const userRole = localStorage.getItem('userRole');
+    tbody.innerHTML = '';
+
+    technicians.forEach(tech => {
+        let actionButtons = ''; // Kosong untuk non-admin
+        let statusDisplay = tech.is_active ? 'Hadir' : 'Libur'; // Tampilan default untuk non-admin
+
+        // Hanya jika role adalah Admin, tampilkan tombol aksi dan toggle
+        if (userRole === 'Admin') {
+            actionButtons = `<div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary" onclick='openEditTechnicianModal(${JSON.stringify(tech)})'>Edit</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteTechnician('${tech.nik}')">Hapus</button>
+            </div>`;
+            
+            statusDisplay = `<div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" ${tech.is_active ? 'checked' : ''} onchange="handleToggleTechnicianStatus('${tech.nik}', this.checked)">
+                  <label class="form-check-label">${tech.is_active ? 'Hadir' : 'Libur'}</label>
+                </div>`;
+        }
+
+        tbody.innerHTML += `<tr>
+            <td>${tech.nik}</td>
+            <td>${tech.name}</td>
+            <td>${tech.phone_number || ''}</td>
+            <td>${statusDisplay}</td>
+            <td>${actionButtons}</td>
+        </tr>`;
+    });
+
+    // Sembunyikan form tambah jika bukan Admin
+    if (userRole !== 'Admin') {
+        addForm.style.display = 'none';
+        document.querySelector('#techniciansModal .modal-body hr').style.display = 'none';
+        document.querySelector('#techniciansModal h6').style.display = 'none';
+    } else {
+        addForm.style.display = 'flex'; // Pastikan terlihat untuk Admin
+        document.querySelector('#techniciansModal .modal-body hr').style.display = 'block';
+        document.querySelector('#techniciansModal h6').style.display = 'block';
+    }
+}
+        
     </script>
 </body>
 </html>
