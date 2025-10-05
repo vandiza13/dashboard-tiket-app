@@ -124,18 +124,21 @@ app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => {
 // PUT: Meng-update tiket berdasarkan ID 
 app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => {
   const ticketId = req.params.id;
-  const { status, teknisi, update_progres } = req.body;
+  // PERUBAHAN: 'teknisi' sekarang adalah sebuah array
+  let { status, teknisi, update_progres } = req.body; 
   const updatedBy = req.user.username;
   const lastUpdateTime = new Date(); 
+
+  // Ubah array teknisi menjadi string yang dipisahkan koma
+  const teknisiString = Array.isArray(teknisi) ? teknisi.join(', ') : teknisi;
+
   const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ?, updated_by = ?, last_update_time = ? WHERE id = ?";
-  const values = [status, teknisi, update_progres, updatedBy, lastUpdateTime, ticketId]; // Tambahkan lastUpdateTime
+  const values = [status, teknisiString, update_progres, updatedBy, lastUpdateTime, ticketId];
+
   db.query(sql, values, (err, result) => {
     if (err) { 
       console.error("Error updating ticket:", err);
-      return res.status(500).json({ error: 'Gagal meng-update tiket di database' }); 
-    }
-    if (result.affectedRows === 0) { 
-      return res.status(404).json({ error: 'Tiket tidak ditemukan' }); 
+      return res.status(500).json({ error: 'Gagal meng-update tiket' }); 
     }
     res.json({ success: true, message: 'Tiket berhasil di-update' });
   });
@@ -173,9 +176,9 @@ app.get('/api/technicians/active', protect, restrictTo('Admin', 'User'), (req, r
 app.post('/api/technicians', protect, restrictTo('Admin'), (req, res) => {
   const { nik, name, phone_number } = req.body;
   if (!nik || !name) { return res.status(400).json({ error: 'NIK dan Nama tidak boleh kosong' }); }
-  if (nik.length !== 6 || !/^\d+$/.test(nik)) { return res.status(400).json({ error: 'NIK harus terdiri dari 6 digit angka' }); }
+  // PERUBAHAN: Validasi NIK 8 digit
+  if (nik.length !== 8 || !/^\d+$/.test(nik)) { return res.status(400).json({ error: 'NIK harus terdiri dari 8 digit angka' }); }
 
-  // is_active akan otomatis TRUE karena default di database
   const sql = "INSERT INTO technicians (nik, name, phone_number) VALUES (?, ?, ?)";
   db.query(sql, [nik, name, phone_number], (err, result) => {
     if (err) {
