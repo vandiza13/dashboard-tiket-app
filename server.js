@@ -94,9 +94,20 @@ const restrictTo = (...roles) => {
 
 // === API TIKET DENGAN PROTEKSI PERAN ===
 app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res) => {
-  const sql = "SELECT * FROM tickets ORDER BY tiket_time ASC";
+  const sql = `
+    SELECT 
+      t.*, 
+      (SELECT GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') 
+       FROM technicians tech 
+       WHERE FIND_IN_SET(tech.nik, REPLACE(t.teknisi, ', ', ','))) as technician_details
+    FROM tickets t 
+    ORDER BY t.tiket_time ASC;
+  `;
   db.query(sql, (err, results) => {
-    if (err) { return res.status(500).json({ error: 'Failed to fetch tickets' }); }
+    if (err) { 
+      console.error("Error fetching tickets with details:", err);
+      return res.status(500).json({ error: 'Failed to fetch tickets' }); 
+    }
     res.json(results);
   });
 });
@@ -121,19 +132,18 @@ app.post('/api/tickets', protect, restrictTo('Admin', 'User'), (req, res) => {
   });
 });
 
-// PUT: Meng-update tiket berdasarkan ID 
+// PUT: Meng-update tiket berdasarkan ID (menyimpan NIK)
 app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), (req, res) => {
   const ticketId = req.params.id;
-  // PERUBAHAN: 'teknisi' sekarang adalah sebuah array
   let { status, teknisi, update_progres } = req.body; 
   const updatedBy = req.user.username;
   const lastUpdateTime = new Date(); 
 
-  // Ubah array teknisi menjadi string yang dipisahkan koma
-  const teknisiString = Array.isArray(teknisi) ? teknisi.join(', ') : teknisi;
+  // teknisi sekarang berisi array NIK, kita gabungkan jadi string
+  const teknisiNiks = Array.isArray(teknisi) ? teknisi.join(',') : '';
 
   const sql = "UPDATE tickets SET status = ?, teknisi = ?, update_progres = ?, updated_by = ?, last_update_time = ? WHERE id = ?";
-  const values = [status, teknisiString, update_progres, updatedBy, lastUpdateTime, ticketId];
+  const values = [status, teknisiNiks, update_progres, updatedBy, lastUpdateTime, ticketId];
 
   db.query(sql, values, (err, result) => {
     if (err) { 
