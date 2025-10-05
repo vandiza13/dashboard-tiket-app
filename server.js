@@ -152,7 +152,7 @@ app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => {
 // === API UNTUK TEKNISI (FINAL) ===
 
 // GET: Mengambil SEMUA teknisi untuk halaman manajemen
-app.get('/api/technicians', protect, restrictTo('Admin'), (req, res) => {
+app.get('/api/technicians', protect, restrictTo('Admin', 'User', 'View'), (req, res) => {
   const sql = "SELECT * FROM technicians ORDER BY name ASC";
   db.query(sql, (err, results) => {
     if (err) { return res.status(500).json({ error: 'Gagal mengambil data teknisi' }); }
