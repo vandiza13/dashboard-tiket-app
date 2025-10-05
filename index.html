@@ -204,17 +204,33 @@
             tbody.innerHTML = rowsHtml;
         }
         async function fetchTickets() {
-            const tbody = document.getElementById('ticket-table-body');
-            tbody.innerHTML = `<tr><td colspan="10" class="text-center">Memuat data...</td></tr>`;
-            try {
-                const response = await fetch(API_URL_TICKETS, { headers: authHeaders });
-                if (response.status === 401 || response.status === 403) { logout(); return; }
-                ticketsCache = await response.json();
-                renderTable(ticketsCache);
-            } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal terhubung ke server.</td></tr>`;
-            }
+    const tbody = document.getElementById('ticket-table-body');
+    tbody.innerHTML = `<tr><td colspan="10" class="text-center">Memuat data...</td></tr>`;
+    try {
+        const response = await fetch(API_URL_TICKETS, { headers: authHeaders });
+        
+        // Jika token tidak valid, langsung logout
+        if (response.status === 401 || response.status === 403) {
+            logout();
+            return;
         }
+
+        const data = await response.json();
+
+        // PERBAIKAN: Cek apakah data yang diterima adalah sebuah array
+        if (Array.isArray(data)) {
+            ticketsCache = data;
+            renderTable(ticketsCache);
+        } else {
+            // Jika bukan array, anggap sebagai error
+            throw new Error(data.error || 'Format data dari server salah.');
+        }
+
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal terhubung atau memuat data dari server.</td></tr>`;
+        console.error("Fetch tickets error:", error);
+    }
+}
         function filterTickets() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const filteredTickets = ticketsCache.filter(t => 
