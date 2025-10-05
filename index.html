@@ -40,58 +40,29 @@
         </div>
     </div>
     
-    <div class="modal fade" id="addTicketModal" tabindex="-1">...</div>
-    <div class="modal fade" id="updateTicketModal" tabindex="-1">...</div>
-    <div class="modal fade" id="reportModal" tabindex="-1">...</div>
+    <!-- Modal 1: Tambah Tiket -->
+    <div class="modal fade" id="addTicketModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Form Tiket Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="addTicketForm"><div class="mb-3"><label for="id_tiket" class="form-label">ID Tiket</label><input type="text" class="form-control" id="id_tiket" required></div><div class="mb-3"><label for="tiket_time" class="form-label">Waktu Tiket</label><input type="datetime-local" class="form-control" id="tiket_time" required></div><div class="mb-3"><label for="deskripsi" class="form-label">Deskripsi</label><textarea class="form-control" id="deskripsi" rows="3" required></textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="handleFormSubmit()">Simpan Tiket</button></div></div></div></div>
 
-    <div class="modal fade" id="techniciansModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Manajemen Teknisi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead><tr><th>NIK</th><th>Nama</th><th>No. HP</th><th>Status</th><th>Aksi</th></tr></thead>
-                            <tbody id="technicians-table-body"></tbody>
-                        </table>
-                    </div>
-                    <hr>
-                    <h6 class="mb-3">Tambah Teknisi Baru</h6>
-                    <form id="addTechnicianForm" class="row g-3 align-items-end">
-                        <div class="col"><label for="tech_nik" class="form-label">NIK</label><input type="text" class="form-control" id="tech_nik" required maxlength="6"></div>
-                        <div class="col"><label for="tech_name" class="form-label">Nama</label><input type="text" class="form-control" id="tech_name" required></div>
-                        <div class="col"><label for="tech_phone" class="form-label">No. HP</label><input type="text" class="form-control" id="tech_phone"></div>
-                        <div class="col-auto"><button type="submit" class="btn btn-primary">Tambah</button></div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal fade" id="editTechnicianModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">Edit Teknisi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <form id="editTechnicianForm">
-                        <input type="hidden" id="edit_tech_nik">
-                        <div class="mb-3"><label for="edit_tech_name" class="form-label">Nama</label><input type="text" class="form-control" id="edit_tech_name" required></div>
-                        <div class="mb-3"><label for="edit_tech_phone" class="form-label">No. HP</label><input type="text" class="form-control" id="edit_tech_phone"></div>
-                    </form>
-                </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" id="save-edit-tech-btn">Simpan</button></div>
-            </div>
-        </div>
-    </div>
+    <!-- Modal 2: Update Tiket -->
+    <div class="modal fade" id="updateTicketModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Update Progres Tiket</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="updateTicketForm"><input type="hidden" id="update_ticket_id"><div class="mb-3"><label for="update_id_tiket_display" class="form-label">ID Tiket</label><input type="text" class="form-control" id="update_id_tiket_display" disabled></div><div class="mb-3"><label for="update_status" class="form-label">Status</label><select class="form-select" id="update_status"><option value="OPEN">OPEN</option><option value="SC">SC</option><option value="CLOSED">CLOSED</option></select></div><div class="mb-3"><label for="update_teknisi" class="form-label">Teknisi</label><select class="form-select" id="update_teknisi"></select></div><div class="mb-3"><label for="update_progres" class="form-label">Update Progres</label><textarea class="form-control" id="update_progres" rows="3"></textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="handleUpdateSubmit()">Simpan Perubahan</button></div></div></div></div>
+
+    <!-- Modal 3: Laporan -->
+    <div class="modal fade" id="reportModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Laporan Tiket Dibuat</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea class="form-control" id="report-textarea" readonly></textarea></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="button" class="btn btn-primary" onclick="copyReportToClipboard()">Copy Laporan</button></div></div></div></div>
+
+    <!-- Modal 4: Manajemen Teknisi -->
+    <div class="modal fade" id="techniciansModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Manajemen Teknisi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="table-responsive"><table class="table"><thead><tr><th>NIK</th><th>Nama</th><th>No. HP</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="technicians-table-body"></tbody></table></div><hr><h6 class="mb-3">Tambah Teknisi Baru</h6><form id="addTechnicianForm" class="row g-3 align-items-end"><div class="col"><label for="tech_nik" class="form-label">NIK</label><input type="text" class="form-control" id="tech_nik" required maxlength="6"></div><div class="col"><label for="tech_name" class="form-label">Nama</label><input type="text" class="form-control" id="tech_name" required></div><div class="col"><label for="tech_phone" class="form-label">No. HP</label><input type="text" class="form-control" id="tech_phone"></div><div class="col-auto"><button type="submit" class="btn btn-primary">Tambah</button></div></form></div></div></div></div>
+
+    <!-- Modal 5: Edit Teknisi -->
+    <div class="modal fade" id="editTechnicianModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Teknisi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="editTechnicianForm"><input type="hidden" id="edit_tech_nik"><div class="mb-3"><label for="edit_tech_name" class="form-label">Nama</label><input type="text" class="form-control" id="edit_tech_name" required></div><div class="mb-3"><label for="edit_tech_phone" class="form-label">No. HP</label><input type="text" class="form-control" id="edit_tech_phone"></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" id="save-edit-tech-btn">Simpan</button></div></div></div></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const API_BASE_URL = 'https://dashboard-tiket-app-production-8656.up.railway.app'; // Ganti dengan URL Railway Anda
+        const API_BASE_URL = 'https://dashboard-tiket-app-production-8656.up.railway.app'; // PASTIKAN URL INI BENAR
         const API_URL_TICKETS = `${API_BASE_URL}/api/tickets`;
         const API_URL_TECHNICIANS = `${API_BASE_URL}/api/technicians`;
         
         let addTicketModal, updateTicketModal, reportModal, techniciansModal, editTechnicianModal;
-        let ticketsCache = [], techniciansCache = [], activeTechniciansCache = [];
+        let ticketsCache = [], activeTechniciansCache = [];
         const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -108,146 +79,116 @@
             document.getElementById('addTechnicianForm').addEventListener('submit', handleAddTechnician);
             document.getElementById('save-edit-tech-btn').addEventListener('click', handleEditTechnicianSubmit);
         });
-        
 
         function applyRoles() {
-            const addTicketBtn = document.getElementById('add-ticket-btn');
-            if (localStorage.getItem('userRole') === 'View') {
-                addTicketBtn.style.display = 'none';
+            const userRole = localStorage.getItem('userRole');
+            if (userRole === 'View') {
+                document.getElementById('add-ticket-btn').style.display = 'none';
             }
         }
 
-        function renderTable(tickets) {
-            const tbody = document.getElementById('ticket-table-body');
-            const localUserRole = localStorage.getItem('userRole');
-            if (tickets.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center">Data tiket tidak ditemukan.</td></tr>`;
-                return;
-            }
-            let rowsHtml = '';
-            tickets.forEach((ticket, index) => {
-                let actionButtons = 'No Action'; // Default untuk 'View'
-                if (localUserRole === 'Admin') {
-                    actionButtons = `<div class="btn-group"><button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})'><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn-danger" onclick='confirmDeleteTicket(${ticket.id})'><i class="bi bi-trash-fill"></i></button></div>`;
-                } else if (localUserRole === 'User') {
-                    actionButtons = `<button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})'><i class="bi bi-pencil-fill"></i></button>`;
+        async function fetchActiveTechnicians() {
+             try {
+                const response = await fetch(`${API_URL_TECHNICIANS}/active`, { headers: authHeaders });
+                if (!response.ok) return;
+                activeTechniciansCache = await response.json();
+            } catch (error) { console.error("Gagal mengambil teknisi aktif:", error); }
+        }
+
+        // --- FUNGSI MANAJEMEN TEKNISI (IMPLEMENTASI LENGKAP) ---
+        async function fetchTechnicians() {
+            try {
+                const response = await fetch(API_URL_TECHNICIANS, { headers: authHeaders });
+                if (!response.ok) throw new Error('Gagal mengambil data teknisi');
+                const technicians = await response.json();
+                renderTechniciansTable(technicians);
+            } catch (error) { document.getElementById('technicians-table-body').innerHTML = `<tr><td colspan="5" class="text-danger">Gagal memuat data.</td></tr>`; }
+        }
+
+        function renderTechniciansTable(technicians) {
+            const tbody = document.getElementById('technicians-table-body');
+            const addForm = document.getElementById('addTechnicianForm');
+            const userRole = localStorage.getItem('userRole');
+            tbody.innerHTML = '';
+            technicians.forEach(tech => {
+                let actionButtons = ''; let statusDisplay = tech.is_active ? 'Hadir' : 'Libur';
+                if (userRole === 'Admin') {
+                    actionButtons = `<div class="btn-group"><button class="btn btn-sm btn-outline-primary" onclick='openEditTechnicianModal(${JSON.stringify(tech)})'>Edit</button><button class="btn btn-sm btn-outline-danger" onclick="handleDeleteTechnician('${tech.nik}')">Hapus</button></div>`;
+                    statusDisplay = `<div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" ${tech.is_active ? 'checked' : ''} onchange="handleToggleTechnicianStatus('${tech.nik}', this.checked)"><label class="form-check-label">${tech.is_active ? 'Hadir' : 'Libur'}</label></div>`;
                 }
-                rowsHtml += `<tr><td>${index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.teknisi || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
+                tbody.innerHTML += `<tr><td>${tech.nik}</td><td>${tech.name}</td><td>${tech.phone_number || ''}</td><td>${statusDisplay}</td><td>${actionButtons}</td></tr>`;
             });
-            tbody.innerHTML = rowsHtml;
+            if (userRole !== 'Admin') {
+                addForm.style.display = 'none';
+                document.querySelector('#techniciansModal .modal-body hr').style.display = 'none';
+                document.querySelector('#techniciansModal h6').style.display = 'none';
+            } else {
+                addForm.style.display = 'flex';
+                document.querySelector('#techniciansModal .modal-body hr').style.display = 'block';
+                document.querySelector('#techniciansModal h6').style.display = 'block';
+            }
+        }
+
+        async function handleAddTechnician(event) {
+            event.preventDefault();
+            const data = { nik: document.getElementById('tech_nik').value, name: document.getElementById('tech_name').value, phone_number: document.getElementById('tech_phone').value };
+            try {
+                const response = await fetch(API_URL_TECHNICIANS, { method: 'POST', headers: authHeaders, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error);
+                document.getElementById('addTechnicianForm').reset();
+                fetchTechnicians();
+            } catch (error) { alert(`Gagal menambah teknisi: ${error.message}`); }
+        }
+
+        function openEditTechnicianModal(tech) {
+            document.getElementById('edit_tech_nik').value = tech.nik;
+            document.getElementById('edit_tech_name').value = tech.name;
+            document.getElementById('edit_tech_phone').value = tech.phone_number || '';
+            editTechnicianModal.show();
+        }
+
+        async function handleEditTechnicianSubmit() {
+            const nik = document.getElementById('edit_tech_nik').value;
+            const data = { name: document.getElementById('edit_tech_name').value, phone_number: document.getElementById('edit_tech_phone').value };
+            try {
+                const response = await fetch(`${API_URL_TECHNICIANS}/${nik}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(data) });
+                if (!response.ok) throw new Error('Gagal update');
+                editTechnicianModal.hide();
+                fetchTechnicians();
+            } catch (error) { alert('Gagal menyimpan perubahan.'); }
+        }
+
+        async function handleToggleTechnicianStatus(nik, isActive) {
+            try {
+                await fetch(`${API_URL_TECHNICIANS}/status/${nik}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify({ is_active: isActive }) });
+            } catch (error) { alert('Gagal mengubah status.'); }
+        }
+
+        async function handleDeleteTechnician(nik) {
+            if (!confirm(`Yakin ingin menghapus teknisi dengan NIK ${nik}?`)) return;
+            try {
+                const response = await fetch(`${API_URL_TECHNICIANS}/${nik}`, { method: 'DELETE', headers: authHeaders });
+                if (!response.ok) throw new Error('Gagal hapus');
+                fetchTechnicians();
+            } catch (error) { alert('Gagal menghapus teknisi.'); }
         }
         
-        async function fetchTickets() {
-            const tbody = document.getElementById('ticket-table-body');
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center">Memuat data...</td></tr>`;
-            try {
-                const response = await fetch(API_URL, { headers: authHeaders });
-                if (response.status === 401 || response.status === 403) { logout(); return; }
-                ticketsCache = await response.json();
-                renderTable(ticketsCache);
-            } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal terhubung ke server.</td></tr>`;
-            }
-        }
-
-        function filterTickets() { 
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase(); 
-            const filteredTickets = ticketsCache.filter(t => (t.id_tiket||'').toLowerCase().includes(searchTerm) || (t.deskripsi||'').toLowerCase().includes(searchTerm) || (t.status||'').toLowerCase().includes(searchTerm) || (t.teknisi||'').toLowerCase().includes(searchTerm)); renderTable(filteredTickets); }
-
-        async function handleFormSubmit() {
-            const d = {
-                id_tiket: document.getElementById('id_tiket').value,
-                tiket_time: document.getElementById('tiket_time').value,
-                deskripsi: document.getElementById('deskripsi').value
-                };
-                    if (!d.id_tiket || !d.deskripsi || !d.tiket_time) {
-                        alert('Semua field harus diisi.');
-                        return;
-                }
-                    try {
-            const r = await fetch(API_URL, {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify(d)
-                });
-            const result = await r.json();
-                    if (!r.ok) {
-            // tampilkan pesan error spesifik
-                    alert(result.error || 'Gagal mengirim data.');
-                    return;
-                }
-                    addTicketModal.hide();
-                    document.getElementById('addTicketForm').reset();
-                    fetchTickets();
-                } catch (e) {
-                    alert('Terjadi kesalahan koneksi ke server.');
-                    }
-        }
-
-        function openUpdateModal(t) { document.getElementById('update_ticket_id').value = t.id; document.getElementById('update_id_tiket_display').value = t.id_tiket; document.getElementById('update_status').value = t.status; document.getElementById('update_teknisi').value = t.teknisi || ''; document.getElementById('update_progres').value = t.update_progres || ''; updateTicketModal.show(); }
-        async function handleUpdateSubmit() { const id = document.getElementById('update_ticket_id').value; const d = { status: document.getElementById('update_status').value, teknisi: document.getElementById('update_teknisi').value, update_progres: document.getElementById('update_progres').value }; try { const r = await fetch(`${API_URL}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) }); if (!r.ok) throw new Error('Gagal update data.'); updateTicketModal.hide(); fetchTickets(); } catch (e) { alert('Gagal menyimpan perubahan.'); } }
+        // --- FUNGSI TIKET (LENGKAP) ---
+        function renderTable(tickets) { const tbody = document.getElementById('ticket-table-body'); const localUserRole = localStorage.getItem('userRole'); if (tickets.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="text-center">Data tiket tidak ditemukan.</td></tr>`; return; } let rowsHtml = ''; tickets.forEach((ticket, index) => { let actionButtons = 'No Action'; if (localUserRole === 'Admin') { actionButtons = `<div class="btn-group"><button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})'><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn-danger" onclick='confirmDeleteTicket(${ticket.id})'><i class="bi bi-trash-fill"></i></button></div>`; } else if (localUserRole === 'User') { actionButtons = `<button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})'><i class="bi bi-pencil-fill"></i></button>`; } rowsHtml += `<tr><td>${index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.teknisi || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`; }); tbody.innerHTML = rowsHtml; }
+        async function fetchTickets() { const tbody = document.getElementById('ticket-table-body'); tbody.innerHTML = `<tr><td colspan="10" class="text-center">Memuat data...</td></tr>`; try { const response = await fetch(API_URL_TICKETS, { headers: authHeaders }); if (response.status === 401 || response.status === 403) { logout(); return; } ticketsCache = await response.json(); renderTable(ticketsCache); } catch (error) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal terhubung ke server.</td></tr>`; } }
+        function filterTickets() { const searchTerm = document.getElementById('searchInput').value.toLowerCase(); const filteredTickets = ticketsCache.filter(t => (t.id_tiket||'').toLowerCase().includes(searchTerm) || (t.deskripsi||'').toLowerCase().includes(searchTerm) || (t.status||'').toLowerCase().includes(searchTerm) || (t.teknisi||'').toLowerCase().includes(searchTerm) || (t.updated_by||'').toLowerCase().includes(searchTerm)); renderTable(filteredTickets); }
+        async function handleFormSubmit() { const d = { id_tiket: document.getElementById('id_tiket').value, tiket_time: document.getElementById('tiket_time').value, deskripsi: document.getElementById('deskripsi').value }; if (!d.id_tiket || !d.deskripsi || !d.tiket_time) { alert('Semua field harus diisi.'); return; } try { const r = await fetch(API_URL_TICKETS, { method: 'POST', headers: authHeaders, body: JSON.stringify(d) }); if (!r.ok) {const err = await r.json(); throw new Error(err.error)}; addTicketModal.hide(); document.getElementById('addTicketForm').reset(); fetchTickets(); } catch (e) { alert('Gagal: ' + e.message); } }
+        function openUpdateModal(ticket) { document.getElementById('update_ticket_id').value = ticket.id; document.getElementById('update_id_tiket_display').value = ticket.id_tiket; document.getElementById('update_status').value = ticket.status; document.getElementById('update_progres').value = ticket.update_progres || ''; const techSelect = document.getElementById('update_teknisi'); techSelect.innerHTML = '<option value="">Pilih Teknisi...</option>'; activeTechniciansCache.forEach(tech => { techSelect.innerHTML += `<option value="${tech.name}">${tech.name}</option>`; }); techSelect.value = ticket.teknisi || ''; updateTicketModal.show(); }
+        async function handleUpdateSubmit() { const id = document.getElementById('update_ticket_id').value; const d = { status: document.getElementById('update_status').value, teknisi: document.getElementById('update_teknisi').value, update_progres: document.getElementById('update_progres').value }; try { const r = await fetch(`${API_URL_TICKETS}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) }); if (!r.ok) throw new Error('Gagal update data.'); updateTicketModal.hide(); fetchTickets(); } catch (e) { alert('Gagal menyimpan perubahan.'); } }
         function confirmDeleteTicket(id) { if (confirm("Yakin ingin menghapus tiket ini?")) { deleteTicket(id); } }
-        async function deleteTicket(id) { try { const r = await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: authHeaders }); if (!r.ok) throw new Error('Gagal menghapus tiket.'); await r.json(); fetchTickets(); } catch (e) { alert(e.message); } }
-        function generateReport() { if (ticketsCache.length === 0) { alert("Tidak ada data."); return; } let t = ""; ticketsCache.forEach((ti, i) => { const it = `${i + 1}.${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTime(ti.tiket_time)} WIB\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.teknisi||'NULL'}\nstatus          : ${ti.status||''}`; t += it; if (i < ticketsCache.length - 1) { t += "\n\n"; } }); document.getElementById('report-textarea').value = t; reportModal.show(); }
+        async function deleteTicket(id) { try { const r = await fetch(`${API_URL_TICKETS}/${id}`, { method: 'DELETE', headers: authHeaders }); if (!r.ok) throw new Error('Gagal menghapus tiket.'); await r.json(); fetchTickets(); } catch (e) { alert(e.message); } }
+        function generateReport() { if (ticketsCache.length === 0) { alert("Tidak ada data."); return; } let t = ""; ticketsCache.forEach((ti, i) => { const it = `${i + 1}. ${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTime(ti.tiket_time)} WIB\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.teknisi||'NULL'}\nstatus          : ${ti.status||''}`; t += it; if (i < ticketsCache.length - 1) { t += "\n\n"; } }); document.getElementById('report-textarea').value = t; reportModal.show(); }
         function copyReportToClipboard() { const t = document.getElementById('report-textarea'); t.select(); navigator.clipboard.writeText(t.value).then(() => alert("Laporan disalin!")).catch(err => alert("Gagal menyalin.")); }
         function logout() { localStorage.removeItem('authToken'); localStorage.removeItem('userRole'); window.location.href = 'login.html'; }
         function formatDateTime(s) { if (!s) return ''; return new Date(s).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', hour12: false }); }
         function getStatusBadge(s) { s = s ? s.toUpperCase() : ''; if (s === 'OPEN') return 'bg-danger'; if (s === 'SC') return 'bg-primary'; if (s === 'CLOSED') return 'bg-success'; return 'bg-secondary'; }
         function getStatusIcon(s) { s = s ? s.toUpperCase() : ''; if (s === 'OPEN') return '❌'; if (s === 'SC') return '🟡'; if (s === 'CLOSED') return '✅'; return '❓'; }
-    
-        function applyRoles() {
-    const userRole = localStorage.getItem('userRole');
-    // Tombol "Tambah Tiket" disembunyikan untuk 'View'
-    if (userRole === 'View') {
-        document.getElementById('add-ticket-btn').style.display = 'none';
-    }
-    // Tombol "Daftar Teknisi" sekarang terlihat untuk semua role, jadi tidak ada yang disembunyikan di sini
-}
-
-function renderTechniciansTable(technicians) {
-    const tbody = document.getElementById('technicians-table-body');
-    const addForm = document.getElementById('addTechnicianForm');
-    const userRole = localStorage.getItem('userRole');
-    tbody.innerHTML = '';
-
-    technicians.forEach(tech => {
-        let actionButtons = ''; // Kosong untuk non-admin
-        let statusDisplay = tech.is_active ? 'Hadir' : 'Libur'; // Tampilan default untuk non-admin
-
-        // Hanya jika role adalah Admin, tampilkan tombol aksi dan toggle
-        if (userRole === 'Admin') {
-            actionButtons = `<div class="btn-group">
-                <button class="btn btn-sm btn-outline-primary" onclick='openEditTechnicianModal(${JSON.stringify(tech)})'>Edit</button>
-                <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteTechnician('${tech.nik}')">Hapus</button>
-            </div>`;
-            
-            statusDisplay = `<div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" role="switch" ${tech.is_active ? 'checked' : ''} onchange="handleToggleTechnicianStatus('${tech.nik}', this.checked)">
-                  <label class="form-check-label">${tech.is_active ? 'Hadir' : 'Libur'}</label>
-                </div>`;
-        }
-
-        tbody.innerHTML += `<tr>
-            <td>${tech.nik}</td>
-            <td>${tech.name}</td>
-            <td>${tech.phone_number || ''}</td>
-            <td>${statusDisplay}</td>
-            <td>${actionButtons}</td>
-        </tr>`;
-    });
-
-    // Sembunyikan form tambah jika bukan Admin
-    if (userRole !== 'Admin') {
-        addForm.style.display = 'none';
-        document.querySelector('#techniciansModal .modal-body hr').style.display = 'none';
-        document.querySelector('#techniciansModal h6').style.display = 'none';
-    } else {
-        addForm.style.display = 'flex'; // Pastikan terlihat untuk Admin
-        document.querySelector('#techniciansModal .modal-body hr').style.display = 'block';
-        document.querySelector('#techniciansModal h6').style.display = 'block';
-    }
-}
-        
     </script>
 </body>
 </html>
