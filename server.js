@@ -149,6 +149,74 @@ app.delete('/api/tickets/:id', protect, restrictTo('Admin'), (req, res) => {
   });
 });
 
+// === API UNTUK TEKNISI (FINAL) ===
+
+// GET: Mengambil SEMUA teknisi untuk halaman manajemen
+app.get('/api/technicians', protect, restrictTo('Admin'), (req, res) => {
+  const sql = "SELECT * FROM technicians ORDER BY name ASC";
+  db.query(sql, (err, results) => {
+    if (err) { return res.status(500).json({ error: 'Gagal mengambil data teknisi' }); }
+    res.json(results);
+  });
+});
+
+// GET: Mengambil teknisi yang AKTIF saja (untuk dropdown tiket)
+app.get('/api/technicians/active', protect, restrictTo('Admin', 'User'), (req, res) => {
+    const sql = "SELECT * FROM technicians WHERE is_active = TRUE ORDER BY name ASC";
+    db.query(sql, (err, results) => {
+        if (err) { return res.status(500).json({ error: 'Gagal mengambil data teknisi aktif' }); }
+        res.json(results);
+    });
+});
+
+// POST: Membuat teknisi baru (hanya Admin)
+app.post('/api/technicians', protect, restrictTo('Admin'), (req, res) => {
+  const { nik, name, phone_number } = req.body;
+  if (!nik || !name) { return res.status(400).json({ error: 'NIK dan Nama tidak boleh kosong' }); }
+  if (nik.length !== 6 || !/^\d+$/.test(nik)) { return res.status(400).json({ error: 'NIK harus terdiri dari 6 digit angka' }); }
+
+  // is_active akan otomatis TRUE karena default di database
+  const sql = "INSERT INTO technicians (nik, name, phone_number) VALUES (?, ?, ?)";
+  db.query(sql, [nik, name, phone_number], (err, result) => {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') { return res.status(409).json({ error: 'NIK sudah terdaftar' }); }
+      return res.status(500).json({ error: 'Gagal menyimpan teknisi' });
+    }
+    res.status(201).json({ success: true, message: 'Teknisi berhasil dibuat' });
+  });
+});
+
+// PUT: Mengubah data teknisi (nama & no.hp) (hanya Admin)
+app.put('/api/technicians/:nik', protect, restrictTo('Admin'), (req, res) => {
+    const { name, phone_number } = req.body;
+    if (!name) { return res.status(400).json({ error: 'Nama tidak boleh kosong' }); }
+
+    const sql = "UPDATE technicians SET name = ?, phone_number = ? WHERE nik = ?";
+    db.query(sql, [name, phone_number, req.params.nik], (err, result) => {
+        if (err) { return res.status(500).json({ error: 'Gagal mengupdate teknisi' }); }
+        res.json({ success: true, message: 'Teknisi berhasil diupdate' });
+    });
+});
+
+// PUT: Mengubah status is_active (hadir/libur) (hanya Admin)
+app.put('/api/technicians/status/:nik', protect, restrictTo('Admin'), (req, res) => {
+    const { is_active } = req.body;
+    const sql = "UPDATE technicians SET is_active = ? WHERE nik = ?";
+    db.query(sql, [is_active, req.params.nik], (err, result) => {
+        if (err) { return res.status(500).json({ error: 'Gagal mengupdate status teknisi' }); }
+        res.json({ success: true, message: 'Status teknisi berhasil diupdate' });
+    });
+});
+
+// DELETE: Menghapus teknisi (hanya Admin)
+app.delete('/api/technicians/:nik', protect, restrictTo('Admin'), (req, res) => {
+  const sql = "DELETE FROM technicians WHERE nik = ?";
+  db.query(sql, [req.params.nik], (err, result) => {
+    if (err) { return res.status(500).json({ error: 'Gagal menghapus teknisi' }); }
+    res.json({ success: true, message: 'Teknisi berhasil dihapus' });
+  });
+});
+
 app.listen(port, () => {
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
