@@ -92,20 +92,20 @@ const restrictTo = (...roles) => {
   };
 };
 
-// === API TIKET DENGAN PROTEKSI PERAN ===
+// === API TIKET (DENGAN QUERY YANG DIPERBAIKI) ===
 app.get('/api/tickets', protect, restrictTo('Admin', 'User', 'View'), (req, res) => {
   const sql = `
     SELECT 
       t.*, 
-      (SELECT GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') 
-       FROM technicians tech 
-       WHERE FIND_IN_SET(tech.nik, REPLACE(t.teknisi, ', ', ','))) as technician_details
-    FROM tickets t 
+      GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details
+    FROM tickets t
+    LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi)
+    GROUP BY t.id
     ORDER BY t.tiket_time ASC;
   `;
   db.query(sql, (err, results) => {
     if (err) { 
-      console.error("Error fetching tickets with details:", err);
+      console.error("Error fetching tickets:", err);
       return res.status(500).json({ error: 'Failed to fetch tickets' }); 
     }
     res.json(results);
