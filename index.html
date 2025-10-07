@@ -1,210 +1,63 @@
 <!DOCTYPE html>
+
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Monitoring Tiket</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        body { padding: 20px; background-color: #f8f9fa; }
-        .table th { vertical-align: middle; }
-        .table th:first-child, .table td:first-child { width: 5%; text-align: center; }
-        #report-textarea { height: 400px; font-size: 0.9em; font-family: monospace; white-space: pre; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Situs Sedang Dalam Perbaikan</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #007bff, #6610f2);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+    h1 {
+      font-weight: 700;
+    }
+    p {
+      font-size: 1.1rem;
+    }
+    footer {
+      position: absolute;
+      bottom: 20px;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  </style>
 </head>
 <body>
-
-    <script>
-        // Pengecekan token dan peran di awal
-        const token = localStorage.getItem('authToken');
-        const userRole = localStorage.getItem('userRole');
-        if (!token) {
-            window.location.href = 'login.html';
-        }
-    </script>
-
-    <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-            <h1>Dashboard Monitoring Tiket</h1>
-            <div class="btn-group" id="main-actions">
-                <button type="button" class="btn btn-info text-white" onclick="generateReport()">Generate Laporan</button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTicketModal" id="add-ticket-btn">+ Tambah Tiket</button>
-                <button type="button" class="btn btn-danger" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
-            </div>
-        </div>
-        <div class="mb-3">
-            <input type="search" id="searchInput" class="form-control" placeholder="🔍 Cari berdasarkan ID Tiket, Deskripsi, Status, atau Teknisi..." oninput="filterTickets()">
-        </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered">
-                <thead class="table-dark">
-                    <tr><th>No.</th><th>ID Tiket</th><th>Waktu Tiket</th><th>Update Terakhir</th><th>Deskripsi</th><th>Status</th><th>Teknisi</th><th>Update Progres</th><th>UpdateBy</th><th>Aksi</th></tr>
-                </thead>
-                <tbody id="ticket-table-body"></tbody>
-            </table>
-        </div>
+  <div class="card text-white">
+    <div class="mb-3">
+      <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
     </div>
-
-    <div class="modal fade" id="addTicketModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Form Tiket Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="addTicketForm"><div class="mb-3"><label for="id_tiket" class="form-label">ID Tiket</label><input type="text" class="form-control" id="id_tiket" required></div><div class="mb-3"><label for="tiket_time" class="form-label">Waktu Tiket</label><input type="datetime-local" class="form-control" id="tiket_time" required></div><div class="mb-3"><label for="deskripsi" class="form-label">Deskripsi</label><textarea class="form-control" id="deskripsi" rows="3" required></textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="handleFormSubmit()">Simpan Tiket</button></div></div></div></div>
-
-    <div class="modal fade" id="updateTicketModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Update Progres Tiket</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="updateTicketForm"><input type="hidden" id="update_ticket_id"><div class="mb-3"><label for="update_id_tiket_display" class="form-label">ID Tiket</label><input type="text" class="form-control" id="update_id_tiket_display" disabled></div><div class="mb-3"><label for="update_status" class="form-label">Status</label><select class="form-select" id="update_status"><option value="OPEN">OPEN</option><option value="SC">SC</option><option value="CLOSED">CLOSED</option></select></div><div class="mb-3"><label for="update_teknisi" class="form-label">Teknisi</label><input type="text" class="form-control" id="update_teknisi"></div><div class="mb-3"><label for="update_progres" class="form-label">Update Progres</label><textarea class="form-control" id="update_progres" rows="3"></textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="handleUpdateSubmit()">Simpan Perubahan</button></div></div></div></div>
-
-    <div class="modal fade" id="reportModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Laporan Tiket Dibuat</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea class="form-control" id="report-textarea" readonly></textarea></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="button" class="btn btn-primary" onclick="copyReportToClipboard()">Copy Laporan</button></div></div></div></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const API_URL = 'https://dashboard-tiket-app-production-8656.up.railway.app/api/tickets';
-        let addTicketModal, updateTicketModal, reportModal;
-        let ticketsCache = [];
-        const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            addTicketModal = new bootstrap.Modal(document.getElementById('addTicketModal'));
-            updateTicketModal = new bootstrap.Modal(document.getElementById('updateTicketModal'));
-            reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
-            applyRoles();
-            fetchTickets();
-        });
-
-        function applyRoles() {
-            const addTicketBtn = document.getElementById('add-ticket-btn');
-            if (localStorage.getItem('userRole') === 'View') {
-                addTicketBtn.style.display = 'none';
-            }
-        }
-
-        function renderTable(tickets) {
-            const tbody = document.getElementById('ticket-table-body');
-            const localUserRole = localStorage.getItem('userRole');
-            if (tickets.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center">Data tiket tidak ditemukan.</td></tr>`;
-                return;
-            }
-            let rowsHtml = '';
-            tickets.forEach((ticket, index) => {
-                let actionButtons = 'No Action'; // Default untuk 'View'
-                if (localUserRole === 'Admin') {
-                    actionButtons = `<div class="btn-group"><button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})'><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn-danger" onclick='confirmDeleteTicket(${ticket.id})'><i class="bi bi-trash-fill"></i></button></div>`;
-                } else if (localUserRole === 'User') {
-                    actionButtons = `<button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})'><i class="bi bi-pencil-fill"></i></button>`;
-                }
-                rowsHtml += `<tr><td>${index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.teknisi || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
-            });
-            tbody.innerHTML = rowsHtml;
-        }
-        
-        async function fetchTickets() {
-            const tbody = document.getElementById('ticket-table-body');
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center">Memuat data...</td></tr>`;
-            try {
-                const response = await fetch(API_URL, { headers: authHeaders });
-                if (response.status === 401 || response.status === 403) { logout(); return; }
-                ticketsCache = await response.json();
-                renderTable(ticketsCache);
-            } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal terhubung ke server.</td></tr>`;
-            }
-        }
-
-        function filterTickets() { 
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase(); 
-            const filteredTickets = ticketsCache.filter(t => (t.id_tiket||'').toLowerCase().includes(searchTerm) || (t.deskripsi||'').toLowerCase().includes(searchTerm) || (t.status||'').toLowerCase().includes(searchTerm) || (t.teknisi||'').toLowerCase().includes(searchTerm)); renderTable(filteredTickets); }
-
-        async function handleFormSubmit() {
-            const d = {
-                id_tiket: document.getElementById('id_tiket').value,
-                tiket_time: document.getElementById('tiket_time').value,
-                deskripsi: document.getElementById('deskripsi').value
-                };
-                    if (!d.id_tiket || !d.deskripsi || !d.tiket_time) {
-                        alert('Semua field harus diisi.');
-                        return;
-                }
-                    try {
-            const r = await fetch(API_URL, {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify(d)
-                });
-            const result = await r.json();
-                    if (!r.ok) {
-            // tampilkan pesan error spesifik
-                    alert(result.error || 'Gagal mengirim data.');
-                    return;
-                }
-                    addTicketModal.hide();
-                    document.getElementById('addTicketForm').reset();
-                    fetchTickets();
-                } catch (e) {
-                    alert('Terjadi kesalahan koneksi ke server.');
-                    }
-        }
-
-        function openUpdateModal(t) { document.getElementById('update_ticket_id').value = t.id; document.getElementById('update_id_tiket_display').value = t.id_tiket; document.getElementById('update_status').value = t.status; document.getElementById('update_teknisi').value = t.teknisi || ''; document.getElementById('update_progres').value = t.update_progres || ''; updateTicketModal.show(); }
-        async function handleUpdateSubmit() { const id = document.getElementById('update_ticket_id').value; const d = { status: document.getElementById('update_status').value, teknisi: document.getElementById('update_teknisi').value, update_progres: document.getElementById('update_progres').value }; try { const r = await fetch(`${API_URL}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) }); if (!r.ok) throw new Error('Gagal update data.'); updateTicketModal.hide(); fetchTickets(); } catch (e) { alert('Gagal menyimpan perubahan.'); } }
-        function confirmDeleteTicket(id) { if (confirm("Yakin ingin menghapus tiket ini?")) { deleteTicket(id); } }
-        async function deleteTicket(id) { try { const r = await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: authHeaders }); if (!r.ok) throw new Error('Gagal menghapus tiket.'); await r.json(); fetchTickets(); } catch (e) { alert(e.message); } }
-        function generateReport() { if (ticketsCache.length === 0) { alert("Tidak ada data."); return; } let t = ""; ticketsCache.forEach((ti, i) => { const it = `${i + 1}.${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTime(ti.tiket_time)} WIB\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.teknisi||'NULL'}\nstatus          : ${ti.status||''}`; t += it; if (i < ticketsCache.length - 1) { t += "\n\n"; } }); document.getElementById('report-textarea').value = t; reportModal.show(); }
-        function copyReportToClipboard() { const t = document.getElementById('report-textarea'); t.select(); navigator.clipboard.writeText(t.value).then(() => alert("Laporan disalin!")).catch(err => alert("Gagal menyalin.")); }
-        function logout() { localStorage.removeItem('authToken'); localStorage.removeItem('userRole'); window.location.href = 'login.html'; }
-        function formatDateTime(s) { if (!s) return ''; return new Date(s).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', hour12: false }); }
-        function getStatusBadge(s) { s = s ? s.toUpperCase() : ''; if (s === 'OPEN') return 'bg-danger'; if (s === 'SC') return 'bg-primary'; if (s === 'CLOSED') return 'bg-success'; return 'bg-secondary'; }
-        function getStatusIcon(s) { s = s ? s.toUpperCase() : ''; if (s === 'OPEN') return '❌'; if (s === 'SC') return '🟡'; if (s === 'CLOSED') return '✅'; return '❓'; }
-    
-        function applyRoles() {
-    const userRole = localStorage.getItem('userRole');
-    // Tombol "Tambah Tiket" disembunyikan untuk 'View'
-    if (userRole === 'View') {
-        document.getElementById('add-ticket-btn').style.display = 'none';
-    }
-    // Tombol "Daftar Teknisi" sekarang terlihat untuk semua role, jadi tidak ada yang disembunyikan di sini
-}
-
-function renderTechniciansTable(technicians) {
-    const tbody = document.getElementById('technicians-table-body');
-    const addForm = document.getElementById('addTechnicianForm');
-    const userRole = localStorage.getItem('userRole');
-    tbody.innerHTML = '';
-
-    technicians.forEach(tech => {
-        let actionButtons = ''; // Kosong untuk non-admin
-        let statusDisplay = tech.is_active ? 'Hadir' : 'Libur'; // Tampilan default untuk non-admin
-
-        // Hanya jika role adalah Admin, tampilkan tombol aksi dan toggle
-        if (userRole === 'Admin') {
-            actionButtons = `<div class="btn-group">
-                <button class="btn btn-sm btn-outline-primary" onclick='openEditTechnicianModal(${JSON.stringify(tech)})'>Edit</button>
-                <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteTechnician('${tech.nik}')">Hapus</button>
-            </div>`;
-            
-            statusDisplay = `<div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" role="switch" ${tech.is_active ? 'checked' : ''} onchange="handleToggleTechnicianStatus('${tech.nik}', this.checked)">
-                  <label class="form-check-label">${tech.is_active ? 'Hadir' : 'Libur'}</label>
-                </div>`;
-        }
-
-        tbody.innerHTML += `<tr>
-            <td>${tech.nik}</td>
-            <td>${tech.name}</td>
-            <td>${tech.phone_number || ''}</td>
-            <td>${statusDisplay}</td>
-            <td>${actionButtons}</td>
-        </tr>`;
-    });
-
-    // Sembunyikan form tambah jika bukan Admin
-    if (userRole !== 'Admin') {
-        addForm.style.display = 'none';
-        document.querySelector('#techniciansModal .modal-body hr').style.display = 'none';
-        document.querySelector('#techniciansModal h6').style.display = 'none';
-    } else {
-        addForm.style.display = 'flex'; // Pastikan terlihat untuk Admin
-        document.querySelector('#techniciansModal .modal-body hr').style.display = 'block';
-        document.querySelector('#techniciansModal h6').style.display = 'block';
-    }
-}
-        
-    </script>
+    <h1>Situs Sedang Dalam Perbaikan 🔧</h1>
+    <p>Kami sedang melakukan pembaruan sistem agar layanan lebih cepat dan stabil.<br>Harap kembali lagi nanti.</p>
+    <p class="mt-4"><strong>Terima kasih atas pengertiannya 🙏</strong></p>
+  </div>
+  <footer>
+    &copy; 2025 Dashboard Tiket — Semua hak dilindungi.
+  </footer>
 </body>
 </html>
