@@ -96,7 +96,7 @@ function createTicketTableHTML() {
           <li class="nav-item"><a class="nav-link" onclick="filterByCategory('CENTRATAMA', this)">CENTRATAMA</a></li>
         </ul>
         <div class="mb-3"><input type="search" id="searchInput" class="form-control" placeholder="🔍 Cari di dalam tab ini..." oninput="applyFiltersAndRender()"></div>
-        <div class="table-responsive"><table class="table table-striped table-hover table-bordered"><thead class="table-dark"><tr><th>No.</th><th>ID Tiket</th><th>Kategori</th><th>Sub-kategori</th><th>Waktu Tiket</th><th>Update Terakhir</th><th>Deskripsi</th><th>Status</th><th>Teknisi</th><th>Update Progres</th><th>Updated By</th><th>Aksi</th></tr></thead><tbody id="ticket-table-body"></tbody></table></div>
+        <div class="table-responsive"><table class="table table-striped table-hover table-bordered"><thead class="table-dark"><tr><th>No.</th><th>ID Tiket</th><th>Kategori</th><th>Waktu Tiket</th><th>Waktu Update</th><th>Deskripsi</th><th>Status</th><th>Teknisi</th><th>Update Progres</th><th>Update By</th><th>Aksi</th></tr></thead><tbody id="ticket-table-body"></tbody></table></div>
         <nav id="pagination-container" class="mt-3"></nav>
     `;
 }
