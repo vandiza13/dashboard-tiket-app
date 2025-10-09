@@ -11,7 +11,6 @@ const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 app.use(cors());
 app.use(express.json());
 
-// Menggunakan createPool untuk koneksi yang lebih andal
 const db = mysql.createPool({
   host: process.env.MYSQLHOST || 'localhost',
   user: process.env.MYSQLUSER || 'root',
@@ -24,7 +23,6 @@ const db = mysql.createPool({
   queueLimit: 0
 });
 
-// Cek koneksi & jalankan seeding
 db.getConnection()
   .then(connection => {
     console.log('✅ Successfully connected to the database.');
@@ -56,7 +54,6 @@ async function seedDatabase() {
   }
 }
 
-// Middleware
 const protect = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -77,11 +74,8 @@ const restrictTo = (...roles) => {
   };
 };
 
-// === ENDPOINTS ===
-
 app.get('/', (req, res) => res.json({ message: "Server is running!", version: "Final" }));
 
-// Autentikasi & Profil
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username dan password diperlukan' });
@@ -139,7 +133,6 @@ app.put('/api/profile/change-password', protect, async (req, res) => {
     }
 });
 
-// Statistik
 app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     try {
         const overviewSql = `SELECT (SELECT COUNT(*) FROM tickets WHERE status IN ('OPEN', 'SC')) as totalRunning, (SELECT COUNT(*) FROM tickets WHERE status = 'CLOSED' AND MONTH(last_update_time) = MONTH(CURDATE()) AND YEAR(last_update_time) = YEAR(CURDATE())) as closedThisMonth`;
@@ -148,18 +141,30 @@ app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, 
         const [statusResult] = await db.query(statusSql);
         const categorySql = "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category";
         const [categoryResult] = await db.query(categorySql);
+        const runningDetailSql = `SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') AND subcategory IS NOT NULL AND subcategory != '' GROUP BY subcategory ORDER BY count DESC`;
+        const [runningDetailResult] = await db.query(runningDetailSql);
+        const closedTodayDetailSql = `SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE() AND subcategory IS NOT NULL AND subcategory != '' GROUP BY subcategory ORDER BY count DESC`;
+        const [closedTodayDetailResult] = await db.query(closedTodayDetailSql);
+
         res.json({
             overview: overviewResult[0],
             statusDistribution: statusResult,
-            categoryDistribution: categoryResult
+            categoryDistribution: categoryResult,
+            runningDetails: {
+                total: runningDetailResult.reduce((sum, item) => sum + item.count, 0),
+                bySubcategory: runningDetailResult
+            },
+            closedTodayDetails: {
+                total: closedTodayDetailResult.reduce((sum, item) => sum + item.count, 0),
+                bySubcategory: closedTodayDetailResult
+            }
         });
     } catch (err) {
-        console.error("Error fetching stats:", err);
+        console.error("Error fetching detailed stats:", err);
         res.status(500).json({ error: 'Gagal mengambil data statistik' });
     }
 });
 
-// Tiket
 app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     const { startDate, endDate, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
@@ -272,7 +277,6 @@ app.get('/api/tickets/:id/history', protect, restrictTo('Admin', 'User', 'View')
   }
 });
 
-// Teknisi
 app.get('/api/technicians', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM technicians ORDER BY name ASC");
@@ -334,7 +338,6 @@ app.delete('/api/technicians/:nik', protect, restrictTo('Admin'), async (req, re
   }
 });
 
-// Menjalankan server
 app.listen(port, () => {
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
