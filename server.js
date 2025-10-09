@@ -11,7 +11,6 @@ const JWT_SECRET = 'rahasia-super-aman-jangan-disebar';
 app.use(cors());
 app.use(express.json());
 
-// Menggunakan createPool untuk koneksi yang lebih andal
 const db = mysql.createPool({
   host: process.env.MYSQLHOST || 'localhost',
   user: process.env.MYSQLUSER || 'root',
@@ -24,7 +23,6 @@ const db = mysql.createPool({
   queueLimit: 0
 });
 
-// Cek koneksi & jalankan seeding
 db.getConnection()
   .then(connection => {
     console.log('✅ Successfully connected to the database.');
@@ -56,7 +54,6 @@ async function seedDatabase() {
   }
 }
 
-// Middleware
 const protect = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -77,11 +74,8 @@ const restrictTo = (...roles) => {
   };
 };
 
-// === ENDPOINTS ===
+app.get('/', (req, res) => res.json({ message: "Server is running!", version: "Final" }));
 
-app.get('/', (req, res) => res.json({ message: "Server is running!", version: "Final-Pagination" }));
-
-// Autentikasi & Profil
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username dan password diperlukan' });
@@ -139,27 +133,41 @@ app.put('/api/profile/change-password', protect, async (req, res) => {
     }
 });
 
-// Tiket
+app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
+    try {
+        const overviewSql = `SELECT (SELECT COUNT(*) FROM tickets WHERE status IN ('OPEN', 'SC')) as totalRunning, (SELECT COUNT(*) FROM tickets WHERE status = 'CLOSED' AND MONTH(last_update_time) = MONTH(CURDATE()) AND YEAR(last_update_time) = YEAR(CURDATE())) as closedThisMonth`;
+        const [overviewResult] = await db.query(overviewSql);
+        const statusSql = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
+        const [statusResult] = await db.query(statusSql);
+        const categorySql = "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category";
+        const [categoryResult] = await db.query(categorySql);
+        res.json({
+            overview: overviewResult[0],
+            statusDistribution: statusResult,
+            categoryDistribution: categoryResult
+        });
+    } catch (err) {
+        console.error("Error fetching stats:", err);
+        res.status(500).json({ error: 'Gagal mengambil data statistik' });
+    }
+});
+
 app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     const { startDate, endDate, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
-
     let whereClause = `WHERE t.status IN ('OPEN', 'SC')`;
     const params = [];
     if (startDate && endDate) {
         whereClause += ' AND DATE(t.tiket_time) BETWEEN ? AND ?';
         params.push(startDate, endDate);
     }
-    
     const countSql = `SELECT COUNT(*) as total FROM tickets t ${whereClause}`;
     const dataSql = `SELECT t.*, GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details FROM tickets t LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) ${whereClause} GROUP BY t.id ORDER BY t.tiket_time ASC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)};`;
-    
     try {
         const [countResult] = await db.query(countSql, params);
         const totalItems = countResult[0].total;
         const totalPages = Math.ceil(totalItems / limit);
         const [results] = await db.query(dataSql, params);
-        
         res.json({
             tickets: results,
             totalPages: totalPages,
@@ -167,7 +175,6 @@ app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), as
             totalItems: totalItems
         });
     } catch (err) {
-        console.error(`Error fetching running tickets:`, err);
         res.status(500).json({ error: `Gagal mengambil tiket running` });
     }
 });
@@ -175,23 +182,19 @@ app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), as
 app.get('/api/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     const { startDate, endDate, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
-
     let whereClause = `WHERE t.status = 'CLOSED'`;
     const params = [];
     if (startDate && endDate) {
         whereClause += ' AND DATE(t.tiket_time) BETWEEN ? AND ?';
         params.push(startDate, endDate);
     }
-    
     const countSql = `SELECT COUNT(*) as total FROM tickets t ${whereClause}`;
     const dataSql = `SELECT t.*, GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details FROM tickets t LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) ${whereClause} GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)};`;
-    
     try {
         const [countResult] = await db.query(countSql, params);
         const totalItems = countResult[0].total;
         const totalPages = Math.ceil(totalItems / limit);
         const [results] = await db.query(dataSql, params);
-        
         res.json({
             tickets: results,
             totalPages: totalPages,
@@ -199,7 +202,6 @@ app.get('/api/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), asy
             totalItems: totalItems
         });
     } catch (err) {
-        console.error(`Error fetching closed tickets:`, err);
         res.status(500).json({ error: `Gagal mengambil tiket closed` });
     }
 });
@@ -225,15 +227,12 @@ app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), async (req, re
     const [rows] = await connection.query("SELECT * FROM tickets WHERE id = ?", [ticketId]);
     if (rows.length === 0) throw new Error('Tiket tidak ditemukan');
     const oldTicket = rows[0];
-    
     const teknisiNiks = Array.isArray(teknisi) ? teknisi.join(',') : '';
     await connection.query("UPDATE tickets SET status = ?, teknisi = ?, update_progres = ?, updated_by = ?, last_update_time = ?, category = ?, subcategory = ? WHERE id = ?", [status, teknisiNiks, update_progres, updatedBy, new Date(), category, subcategory, ticketId]);
-
     let changes = [];
     if (oldTicket.status !== status) changes.push(`Status: '${oldTicket.status}' -> '${status}'`);
     if (oldTicket.teknisi !== teknisiNiks) changes.push(`Teknisi diubah`);
     if (oldTicket.update_progres !== update_progres) changes.push(`Progres diubah`);
-    
     if (changes.length > 0) {
       await connection.query("INSERT INTO ticket_history (ticket_id, changed_by, change_details) VALUES (?, ?, ?)", [ticketId, updatedBy, changes.join('. ')]);
     }
@@ -265,7 +264,6 @@ app.get('/api/tickets/:id/history', protect, restrictTo('Admin', 'User', 'View')
   }
 });
 
-// Teknisi
 app.get('/api/technicians', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM technicians ORDER BY name ASC");
@@ -327,7 +325,7 @@ app.delete('/api/technicians/:nik', protect, restrictTo('Admin'), async (req, re
   }
 });
 
-// Menjalankan server
 app.listen(port, () => {
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
+
