@@ -6,6 +6,7 @@ const API_URL_TECHNICIANS = `${API_BASE_URL}/api/technicians`;
 let addTicketModal, updateTicketModal, reportModal, techniciansModal, editTechnicianModal, historyModal;
 let ticketsCache = [], activeTechniciansCache = [];
 let currentCategoryFilter = 'Semua';
+let currentEditingTicket = null;
 const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
 
 const categories = {
@@ -440,16 +441,27 @@ async function handleFormSubmit() {
 }
 
 function openUpdateModal(ticket) {
+    currentEditingTicket = ticket;
+    const userRole = localStorage.getItem('userRole');
     document.getElementById('update_ticket_id').value = ticket.id;
     document.getElementById('update_id_tiket_display').value = ticket.id_tiket;
     document.getElementById('update_status').value = ticket.status;
     document.getElementById('update_progres').value = ticket.update_progres || '';
-    const categorySelect = document.getElementById('update_category');
-    categorySelect.value = ticket.category;
-    categorySelect.dispatchEvent(new Event('change'));
-    setTimeout(() => {
-        document.getElementById('update_subcategory').value = ticket.subcategory;
-    }, 50);
+    const categoryDiv = document.getElementById('update_category').parentElement;
+    const subcategoryDiv = document.getElementById('update_subcategory').parentElement;
+    if (userRole === 'User') {
+        categoryDiv.style.display = 'none';
+        subcategoryDiv.style.display = 'none';
+    } else {
+        categoryDiv.style.display = 'block';
+        subcategoryDiv.style.display = 'block';
+        const categorySelect = document.getElementById('update_category');
+        categorySelect.value = ticket.category;
+        categorySelect.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+            document.getElementById('update_subcategory').value = ticket.subcategory;
+        }, 50);
+    }
     const techCheckboxes = document.getElementById('technician-checkboxes-update');
     techCheckboxes.innerHTML = '';
     const assignedTechnicianNiks = ticket.teknisi ? ticket.teknisi.split(',') : [];
@@ -465,7 +477,15 @@ async function handleUpdateSubmit() {
     document.querySelectorAll('#technician-checkboxes-update input[type="checkbox"]:checked').forEach(checkbox => { selectedTechnicianNiks.push(checkbox.value); });
     if (selectedTechnicianNiks.length > 5) { alert("Maksimal 5 teknisi."); return; }
     const id = document.getElementById('update_ticket_id').value;
-    const d = { status: document.getElementById('update_status').value, teknisi: selectedTechnicianNiks, update_progres: document.getElementById('update_progres').value, category: document.getElementById('update_category').value, subcategory: document.getElementById('update_subcategory').value };
+    const userRole = localStorage.getItem('userRole');
+    const d = { status: document.getElementById('update_status').value, teknisi: selectedTechnicianNiks, update_progres: document.getElementById('update_progres').value };
+    if (userRole === 'Admin') {
+        d.category = document.getElementById('update_category').value;
+        d.subcategory = document.getElementById('update_subcategory').value;
+    } else {
+        d.category = currentEditingTicket.category;
+        d.subcategory = currentEditingTicket.subcategory;
+    }
     try {
         const r = await fetch(`${API_URL_TICKETS}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) });
         if (!r.ok) throw new Error('Gagal');

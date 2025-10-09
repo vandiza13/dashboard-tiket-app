@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql2/promise'); // Menggunakan versi promise untuk async/await
+const mysql = require('mysql2/promise');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -79,7 +79,7 @@ const restrictTo = (...roles) => {
 
 // === ENDPOINTS ===
 
-app.get('/', (req, res) => res.json({ message: "Server is running!", version: "Final-HistoryFix" }));
+app.get('/', (req, res) => res.json({ message: "Server is running!", version: "Final" }));
 
 // Autentikasi & Profil
 app.post('/api/register', async (req, res) => {
@@ -142,47 +142,22 @@ app.put('/api/profile/change-password', protect, async (req, res) => {
 // Statistik
 app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     try {
-        // Query untuk tiket running
-        const runningSql = `
-            SELECT subcategory, COUNT(*) as count 
-            FROM tickets 
-            WHERE status IN ('OPEN', 'SC') AND subcategory IS NOT NULL AND subcategory != '' 
-            GROUP BY subcategory 
-            ORDER BY count DESC
-        `;
-        const [runningResult] = await db.query(runningSql);
-
-        // Query untuk tiket yang ditutup HARI INI
-        const closedTodaySql = `
-            SELECT subcategory, COUNT(*) as count 
-            FROM tickets 
-            WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE() AND subcategory IS NOT NULL AND subcategory != ''
-            GROUP BY subcategory 
-            ORDER BY count DESC
-        `;
-        const [closedTodayResult] = await db.query(closedTodaySql);
-
-        // Hitung total dari hasil query
-        const totalRunning = runningResult.reduce((sum, item) => sum + item.count, 0);
-        const totalClosedToday = closedTodayResult.reduce((sum, item) => sum + item.count, 0);
-
+        const overviewSql = `SELECT (SELECT COUNT(*) FROM tickets WHERE status IN ('OPEN', 'SC')) as totalRunning, (SELECT COUNT(*) FROM tickets WHERE status = 'CLOSED' AND MONTH(last_update_time) = MONTH(CURDATE()) AND YEAR(last_update_time) = YEAR(CURDATE())) as closedThisMonth`;
+        const [overviewResult] = await db.query(overviewSql);
+        const statusSql = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
+        const [statusResult] = await db.query(statusSql);
+        const categorySql = "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category";
+        const [categoryResult] = await db.query(categorySql);
         res.json({
-            runningStats: {
-                total: totalRunning,
-                bySubcategory: runningResult
-            },
-            closedTodayStats: {
-                total: totalClosedToday,
-                bySubcategory: closedTodayResult
-            }
+            overview: overviewResult[0],
+            statusDistribution: statusResult,
+            categoryDistribution: categoryResult
         });
-
     } catch (err) {
-        console.error("Error fetching detailed stats:", err);
+        console.error("Error fetching stats:", err);
         res.status(500).json({ error: 'Gagal mengambil data statistik' });
     }
 });
-
 
 // Tiket
 app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
@@ -266,12 +241,8 @@ app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), async (req, re
     if (oldTicket.status !== status) changes.push(`Status: '${oldTicket.status}' -> '${status}'`);
     if (oldTicket.teknisi !== teknisiNiks) changes.push(`Teknisi diubah`);
     if (oldTicket.update_progres !== update_progres) changes.push(`Progres diubah`);
-    
-    // PERBAIKAN: Masukkan timestamp secara manual
     if (changes.length > 0) {
-      const changeDetails = changes.join('. ');
-      const historySql = "INSERT INTO ticket_history (ticket_id, changed_by, change_details, change_timestamp) VALUES (?, ?, ?, ?)";
-      await connection.query(historySql, [ticketId, updatedBy, changeDetails, new Date()]);
+      await connection.query("INSERT INTO ticket_history (ticket_id, changed_by, change_details, change_timestamp) VALUES (?, ?, ?, ?)", [ticketId, updatedBy, changes.join('. '), new Date()]);
     }
     await connection.commit();
     res.json({ success: true, message: 'Tiket berhasil diupdate' });
@@ -367,4 +338,3 @@ app.delete('/api/technicians/:nik', protect, restrictTo('Admin'), async (req, re
 app.listen(port, () => {
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
-
