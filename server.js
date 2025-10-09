@@ -141,26 +141,13 @@ app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, 
         const [statusResult] = await db.query(statusSql);
         const categorySql = "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category";
         const [categoryResult] = await db.query(categorySql);
-        const runningDetailSql = `SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') AND subcategory IS NOT NULL AND subcategory != '' GROUP BY subcategory ORDER BY count DESC`;
-        const [runningDetailResult] = await db.query(runningDetailSql);
-        const closedTodayDetailSql = `SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE() AND subcategory IS NOT NULL AND subcategory != '' GROUP BY subcategory ORDER BY count DESC`;
-        const [closedTodayDetailResult] = await db.query(closedTodayDetailSql);
-
         res.json({
             overview: overviewResult[0],
             statusDistribution: statusResult,
-            categoryDistribution: categoryResult,
-            runningDetails: {
-                total: runningDetailResult.reduce((sum, item) => sum + item.count, 0),
-                bySubcategory: runningDetailResult
-            },
-            closedTodayDetails: {
-                total: closedTodayDetailResult.reduce((sum, item) => sum + item.count, 0),
-                bySubcategory: closedTodayDetailResult
-            }
+            categoryDistribution: categoryResult
         });
     } catch (err) {
-        console.error("Error fetching detailed stats:", err);
+        console.error("Error fetching stats:", err);
         res.status(500).json({ error: 'Gagal mengambil data statistik' });
     }
 });
@@ -341,3 +328,4 @@ app.delete('/api/technicians/:nik', protect, restrictTo('Admin'), async (req, re
 app.listen(port, () => {
   console.log(`🚀 Server backend berjalan di port ${port}`);
 });
+
