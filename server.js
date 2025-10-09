@@ -142,22 +142,47 @@ app.put('/api/profile/change-password', protect, async (req, res) => {
 // Statistik
 app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     try {
-        const overviewSql = `SELECT (SELECT COUNT(*) FROM tickets WHERE status IN ('OPEN', 'SC')) as totalRunning, (SELECT COUNT(*) FROM tickets WHERE status = 'CLOSED' AND MONTH(last_update_time) = MONTH(CURDATE()) AND YEAR(last_update_time) = YEAR(CURDATE())) as closedThisMonth`;
-        const [overviewResult] = await db.query(overviewSql);
-        const statusSql = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
-        const [statusResult] = await db.query(statusSql);
-        const categorySql = "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category";
-        const [categoryResult] = await db.query(categorySql);
+        // Query untuk tiket running
+        const runningSql = `
+            SELECT subcategory, COUNT(*) as count 
+            FROM tickets 
+            WHERE status IN ('OPEN', 'SC') AND subcategory IS NOT NULL AND subcategory != '' 
+            GROUP BY subcategory 
+            ORDER BY count DESC
+        `;
+        const [runningResult] = await db.query(runningSql);
+
+        // Query untuk tiket yang ditutup HARI INI
+        const closedTodaySql = `
+            SELECT subcategory, COUNT(*) as count 
+            FROM tickets 
+            WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE() AND subcategory IS NOT NULL AND subcategory != ''
+            GROUP BY subcategory 
+            ORDER BY count DESC
+        `;
+        const [closedTodayResult] = await db.query(closedTodaySql);
+
+        // Hitung total dari hasil query
+        const totalRunning = runningResult.reduce((sum, item) => sum + item.count, 0);
+        const totalClosedToday = closedTodayResult.reduce((sum, item) => sum + item.count, 0);
+
         res.json({
-            overview: overviewResult[0],
-            statusDistribution: statusResult,
-            categoryDistribution: categoryResult
+            runningStats: {
+                total: totalRunning,
+                bySubcategory: runningResult
+            },
+            closedTodayStats: {
+                total: totalClosedToday,
+                bySubcategory: closedTodayResult
+            }
         });
+
     } catch (err) {
-        console.error("Error fetching stats:", err);
+        console.error("Error fetching detailed stats:", err);
         res.status(500).json({ error: 'Gagal mengambil data statistik' });
     }
 });
+
 
 // Tiket
 app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
