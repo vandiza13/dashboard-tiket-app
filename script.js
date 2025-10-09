@@ -250,7 +250,7 @@ function renderTable(ticketsToRender) {
     const tbody = document.getElementById('ticket-table-body');
     const localUserRole = localStorage.getItem('userRole');
     if (ticketsToRender.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" class="text-center">Data tiket tidak ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center">Data tiket tidak ditemukan.</td></tr>`;
         return;
     }
     let rowsHtml = '';
@@ -264,7 +264,7 @@ function renderTable(ticketsToRender) {
         } else {
             actionButtons = historyButton;
         }
-        rowsHtml += `<tr><td>${index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.category || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
+        rowsHtml += `<tr><td>${index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
     });
     tbody.innerHTML = rowsHtml;
 }
@@ -389,17 +389,35 @@ async function handleFormSubmit() {
     }
 }
 
+
 function openUpdateModal(ticket) {
+    currentEditingTicket = ticket; // Simpan data tiket saat ini
+    const userRole = localStorage.getItem('userRole');
+
     document.getElementById('update_ticket_id').value = ticket.id;
     document.getElementById('update_id_tiket_display').value = ticket.id_tiket;
     document.getElementById('update_status').value = ticket.status;
     document.getElementById('update_progres').value = ticket.update_progres || '';
-    const categorySelect = document.getElementById('update_category');
-    categorySelect.value = ticket.category;
-    categorySelect.dispatchEvent(new Event('change'));
-    setTimeout(() => {
-        document.getElementById('update_subcategory').value = ticket.subcategory;
-    }, 50);
+
+    const categoryDiv = document.getElementById('update_category').parentElement;
+    const subcategoryDiv = document.getElementById('update_subcategory').parentElement;
+    
+    // Logika untuk menampilkan/menyembunyikan field kategori
+    if (userRole === 'User') {
+        categoryDiv.style.display = 'none';
+        subcategoryDiv.style.display = 'none';
+    } else { // Untuk Admin
+        categoryDiv.style.display = 'block';
+        subcategoryDiv.style.display = 'block';
+        
+        const categorySelect = document.getElementById('update_category');
+        categorySelect.value = ticket.category;
+        categorySelect.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+            document.getElementById('update_subcategory').value = ticket.subcategory;
+        }, 50);
+    }
+
     const techCheckboxes = document.getElementById('technician-checkboxes-update');
     techCheckboxes.innerHTML = '';
     const assignedTechnicianNiks = ticket.teknisi ? ticket.teknisi.split(',') : [];
@@ -414,10 +432,33 @@ async function handleUpdateSubmit() {
     const selectedTechnicianNiks = [];
     document.querySelectorAll('#technician-checkboxes-update input[type="checkbox"]:checked').forEach(checkbox => { selectedTechnicianNiks.push(checkbox.value); });
     if (selectedTechnicianNiks.length > 5) { alert("Maksimal 5 teknisi."); return; }
+
     const id = document.getElementById('update_ticket_id').value;
-    const d = { status: document.getElementById('update_status').value, teknisi: selectedTechnicianNiks, update_progres: document.getElementById('update_progres').value, category: document.getElementById('update_category').value, subcategory: document.getElementById('update_subcategory').value };
+    const userRole = localStorage.getItem('userRole');
+
+    // Buat objek data dasar
+    const d = {
+        status: document.getElementById('update_status').value,
+        teknisi: selectedTechnicianNiks,
+        update_progres: document.getElementById('update_progres').value
+    };
+
+    // Tambahkan data kategori HANYA jika Admin
+    if (userRole === 'Admin') {
+        d.category = document.getElementById('update_category').value;
+        d.subcategory = document.getElementById('update_subcategory').value;
+    } else {
+        // Jika User, kirim kembali data kategori asli agar tidak terhapus
+        d.category = currentEditingTicket.category;
+        d.subcategory = currentEditingTicket.subcategory;
+    }
+
     try {
-        const r = await fetch(`${API_URL_TICKETS}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) });
+        const r = await fetch(`${API_URL_TICKETS}/${id}`, {
+            method: 'PUT',
+            headers: authHeaders,
+            body: JSON.stringify(d)
+        });
         if (!r.ok) throw new Error('Gagal');
         updateTicketModal.hide();
         router();
@@ -425,6 +466,7 @@ async function handleUpdateSubmit() {
         alert('Gagal menyimpan.');
     }
 }
+
 
 function confirmDeleteTicket(id) {
     if (confirm("Yakin hapus tiket ini?")) {
