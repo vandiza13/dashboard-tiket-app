@@ -125,8 +125,8 @@ body {
 .table th:nth-child(7), .table td:nth-child(7) { width: 8ch; white-space: normal; }
 .table th:nth-child(8), .table td:nth-child(8) { width: 20ch; }
 .table th:nth-child(9), .table td:nth-child(9) { width: 60ch; white-space: normal; }
-.table th:nth-child(10), .table td:nth-child(10) { width: 10ch; white-space: normal; }
-.table th:nth-child(11), .table td:nth-child(11) { width: 10ch; white-space: normal; }
+.table th:nth-child(10), .table td:nth-child(10) { width: 12ch; white-space: normal; }
+.table th:nth-child(11), .table td:nth-child(11) { width: 12ch; white-space: normal; }
 
 /* Tab Kategori */
 .category-tabs .nav-link {
@@ -166,7 +166,7 @@ body {
 
 /* Modal Teknisi */
 #techniciansModal .table th:nth-child(1),
-#techniciansModal .table td:nth-child(1) { width: 13%; }
+#techniciansModal .table td:nth-child(1) { width: 15%; }
 
 #techniciansModal .table th:nth-child(2),
 #techniciansModal .table td:nth-child(2) { width: 30%; }
