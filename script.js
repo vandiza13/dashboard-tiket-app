@@ -202,6 +202,10 @@ async function fetchAndRenderStats() {
         const response = await fetch(`${API_BASE_URL}/api/stats`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
+        // Tambahkan pengecekan agar tidak error jika response tidak sesuai
+        if (!stats.runningDetails || !stats.closedTodayDetails) {
+            throw new Error('Format data statistik tidak sesuai.');
+        }
         document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
         document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
         const createBarChart = (canvasId, chartLabel, data) => {

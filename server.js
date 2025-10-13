@@ -137,16 +137,31 @@ app.put('/api/profile/change-password', protect, async (req, res) => {
 
 app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     try {
-        const overviewSql = `SELECT (SELECT COUNT(*) FROM tickets WHERE status IN ('OPEN', 'SC')) as totalRunning, (SELECT COUNT(*) FROM tickets WHERE status = 'CLOSED' AND MONTH(last_update_time) = MONTH(CURDATE()) AND YEAR(last_update_time) = YEAR(CURDATE())) as closedThisMonth`;
-        const [overviewResult] = await db.query(overviewSql);
-        const statusSql = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
-        const [statusResult] = await db.query(statusSql);
-        const categorySql = "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category";
-        const [categoryResult] = await db.query(categorySql);
+        // Total tiket running (OPEN/SC)
+        const [runningTotalRows] = await db.query(
+            "SELECT COUNT(*) as total FROM tickets WHERE status IN ('OPEN', 'SC')"
+        );
+        // Per subcategory untuk tiket running
+        const [runningBySubcat] = await db.query(
+            "SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') GROUP BY subcategory"
+        );
+        // Total tiket closed hari ini
+        const [closedTodayRows] = await db.query(
+            "SELECT COUNT(*) as total FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE()"
+        );
+        // Per subcategory untuk tiket closed hari ini
+        const [closedTodayBySubcat] = await db.query(
+            "SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE() GROUP BY subcategory"
+        );
         res.json({
-            overview: overviewResult[0],
-            statusDistribution: statusResult,
-            categoryDistribution: categoryResult
+            runningDetails: {
+                total: runningTotalRows[0]?.total || 0,
+                bySubcategory: runningBySubcat
+            },
+            closedTodayDetails: {
+                total: closedTodayRows[0]?.total || 0,
+                bySubcategory: closedTodayBySubcat
+            }
         });
     } catch (err) {
         console.error("Error fetching stats:", err);
