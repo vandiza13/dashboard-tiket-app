@@ -269,7 +269,11 @@ function renderTable(ticketsToRender) {
     tbody.innerHTML = rowsHtml;
 }
 
-function renderPagination(totalPages, currentPage, type) {
+function changePage(page) {
+    fetchAndRenderTickets(currentView, page);
+}
+
+function renderPagination(totalPages, currentPage) {
     const paginationContainer = document.getElementById('pagination-container');
     if (!paginationContainer || totalPages <= 1) {
         if(paginationContainer) paginationContainer.innerHTML = '';
@@ -277,16 +281,20 @@ function renderPagination(totalPages, currentPage, type) {
     }
     let paginationHtml = '<ul class="pagination justify-content-center">';
     const prevDisabled = currentPage === 1 ? 'disabled' : '';
-    paginationHtml += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="fetchAndRenderTickets('${type}', ${currentPage - 1})">Previous</a></li>`;
+    // PERBAIKAN: Panggil changePage()
+    paginationHtml += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a></li>`;
     for (let i = 1; i <= totalPages; i++) {
         const active = i === currentPage ? 'active' : '';
-        paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="fetchAndRenderTickets('${type}', ${i})">${i}</a></li>`;
+        // PERBAIKAN: Panggil changePage()
+        paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
     }
     const nextDisabled = currentPage === totalPages ? 'disabled' : '';
-    paginationHtml += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="fetchAndRenderTickets('${type}', ${currentPage + 1})">Next</a></li>`;
+    // PERBAIKAN: Panggil changePage()
+    paginationHtml += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a></li>`;
     paginationHtml += '</ul>';
     paginationContainer.innerHTML = paginationHtml;
 }
+
 
 function renderTechniciansTable(technicians) {
     const tbody = document.getElementById('technicians-table-body');
