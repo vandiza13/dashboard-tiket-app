@@ -153,6 +153,18 @@ app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, 
         const [closedTodayBySubcat] = await db.query(
             "SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = CURDATE() GROUP BY subcategory"
         );
+        // Total tiket closed bulan ini
+        const [closedThisMonthRows] = await db.query(
+            "SELECT COUNT(*) as total FROM tickets WHERE status = 'CLOSED' AND MONTH(last_update_time) = MONTH(CURDATE()) AND YEAR(last_update_time) = YEAR(CURDATE())"
+        );
+        // Distribusi status tiket
+        const [statusDistribution] = await db.query(
+            "SELECT status, COUNT(*) as count FROM tickets GROUP BY status"
+        );
+        // Distribusi kategori tiket
+        const [categoryDistribution] = await db.query(
+            "SELECT category, COUNT(*) as count FROM tickets WHERE category IS NOT NULL AND category != '' GROUP BY category"
+        );
         res.json({
             runningDetails: {
                 total: runningTotalRows[0]?.total || 0,
@@ -161,7 +173,10 @@ app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, 
             closedTodayDetails: {
                 total: closedTodayRows[0]?.total || 0,
                 bySubcategory: closedTodayBySubcat
-            }
+            },
+            closedThisMonth: closedThisMonthRows[0]?.total || 0,
+            statusDistribution,
+            categoryDistribution
         });
     } catch (err) {
         console.error("Error fetching stats:", err);

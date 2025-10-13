@@ -205,7 +205,7 @@ async function fetchAndRenderStats() {
                         <span class="badge bg-primary rounded-pill fs-5" id="total-running-stat">...</span>
                     </div>
                     <div class="card-body" id="running-details-body">
-                        <p class="text-muted">Rincian per Jenis Tiket (Sub-kategori):</p>
+                        <p class="text-muted mb-1">Rincian per Sub-kategori:</p>
                         <div id="running-subcat-list"></div>
                     </div>
                 </div>
@@ -217,8 +217,38 @@ async function fetchAndRenderStats() {
                         <span class="badge bg-success rounded-pill fs-5" id="total-closed-today-stat">...</span>
                     </div>
                     <div class="card-body" id="closed-today-details-body">
-                        <p class="text-muted">Rincian per Jenis Tiket (Sub-kategori):</p>
+                        <p class="text-muted mb-1">Rincian per Sub-kategori:</p>
                         <div id="closed-today-subcat-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Distribusi Status Tiket</h5>
+                    </div>
+                    <div class="card-body" id="status-distribution-body"></div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Distribusi Kategori Tiket</h5>
+                    </div>
+                    <div class="card-body" id="category-distribution-body"></div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Tiket Closed Bulan Ini</h5>
+                    </div>
+                    <div class="card-body" id="closed-this-month-body">
+                        <span class="badge bg-info rounded-pill fs-5" id="total-closed-this-month">...</span>
                     </div>
                 </div>
             </div>
@@ -228,17 +258,16 @@ async function fetchAndRenderStats() {
         const response = await fetch(`${API_BASE_URL}/api/stats?ts=${Date.now()}`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
-        if (!stats.runningDetails || !stats.closedTodayDetails) {
+        if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth) {
             throw new Error('Format data statistik tidak sesuai.');
         }
 
-        // --- RESET DATA TIKET SELESAI HARI INI JIKA BERGANTI HARI ---
-        // Tidak perlu cache, cukup tampilkan data dari backend yang sudah otomatis filter hari ini
-
+        // Total
         document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
         document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
+        document.getElementById('total-closed-this-month').innerText = stats.closedThisMonth;
 
-        // Rincian per subkategori (angka saja, tanpa diagram)
+        // Rincian subkategori running
         const runningListDiv = document.getElementById('running-subcat-list');
         if (stats.runningDetails.bySubcategory.length > 0) {
             let html = '<ul class="list-group">';
@@ -254,6 +283,7 @@ async function fetchAndRenderStats() {
             runningListDiv.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>';
         }
 
+        // Rincian subkategori closed today
         const closedListDiv = document.getElementById('closed-today-subcat-list');
         if (stats.closedTodayDetails.bySubcategory.length > 0) {
             let html = '<ul class="list-group">';
@@ -267,6 +297,38 @@ async function fetchAndRenderStats() {
             closedListDiv.innerHTML = html;
         } else {
             closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
+        }
+
+        // Distribusi status tiket
+        const statusBody = document.getElementById('status-distribution-body');
+        if (stats.statusDistribution.length > 0) {
+            let html = '<ul class="list-group">';
+            stats.statusDistribution.forEach(item => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${item.status || '-'}
+                    <span class="badge bg-secondary rounded-pill">${item.count}</span>
+                </li>`;
+            });
+            html += '</ul>';
+            statusBody.innerHTML = html;
+        } else {
+            statusBody.innerHTML = '<p class="text-center text-muted">Tidak ada data status tiket.</p>';
+        }
+
+        // Distribusi kategori tiket
+        const categoryBody = document.getElementById('category-distribution-body');
+        if (stats.categoryDistribution.length > 0) {
+            let html = '<ul class="list-group">';
+            stats.categoryDistribution.forEach(item => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${item.category || '-'}
+                    <span class="badge bg-info rounded-pill">${item.count}</span>
+                </li>`;
+            });
+            html += '</ul>';
+            categoryBody.innerHTML = html;
+        } else {
+            categoryBody.innerHTML = '<p class="text-center text-muted">Tidak ada data kategori tiket.</p>';
         }
     } catch(error) {
         contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
