@@ -17,6 +17,11 @@ const categories = {
     CENTRATAMA: ["FSI"]
 };
 
+// Tambahkan variabel global untuk pagination hasil filter
+let filteredTicketsCache = [];
+let currentPage = 1;
+const PAGE_SIZE = 20;
+
 // Inisialisasi Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
     addTicketModal = new bootstrap.Modal(document.getElementById('addTicketModal'));
@@ -138,8 +143,8 @@ async function fetchAndRenderTickets(type, page = 1) {
                 categoryTabs.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
                 categoryTabs.querySelector('.nav-link').classList.add('active');
             }
-            applyFiltersAndRender();
-            renderPagination(data.totalPages, data.currentPage);
+            applyFiltersAndRender(1); // Selalu mulai dari halaman 1 setelah fetch
+            // renderPagination(data.totalPages, data.currentPage); // Tidak perlu, pagination sekarang berdasarkan filter
         } else { throw new Error(data.error || 'Format data salah.'); }
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal memuat data.</td></tr>`;
@@ -248,7 +253,7 @@ function filterByCategory(category, clickedTab) {
     applyFiltersAndRender();
 }
 
-function applyFiltersAndRender() {
+function applyFiltersAndRender(page = 1) {
     let filteredTickets = ticketsCache;
     if (currentCategoryFilter !== 'Semua') {
         filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
@@ -262,18 +267,26 @@ function applyFiltersAndRender() {
             );
         }
     }
-    renderTable(filteredTickets);
+    filteredTicketsCache = filteredTickets; // simpan hasil filter
+    currentPage = page;
+    renderTable(filteredTicketsCache, currentPage);
+    renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
 }
 
-function renderTable(ticketsToRender) {
+function renderTable(ticketsToRender, page = 1) {
     const tbody = document.getElementById('ticket-table-body');
     const localUserRole = localStorage.getItem('userRole');
-    if (ticketsToRender.length === 0) {
+    if (!ticketsToRender || ticketsToRender.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center">Data tiket tidak ditemukan.</td></tr>`;
         return;
     }
+    // Pagination logic
+    const startIdx = (page - 1) * PAGE_SIZE;
+    const endIdx = startIdx + PAGE_SIZE;
+    const pagedTickets = ticketsToRender.slice(startIdx, endIdx);
+
     let rowsHtml = '';
-    ticketsToRender.forEach((ticket, index) => {
+    pagedTickets.forEach((ticket, index) => {
         let actionButtons = 'No Action';
         const historyButton = `<button class="btn btn-sm btn-outline-info" onclick="showHistory(${ticket.id}, '${ticket.id_tiket}')" title="Lihat Riwayat"><i class="bi bi-clock-history"></i></button>`;
         if (localUserRole === 'Admin') {
@@ -283,13 +296,18 @@ function renderTable(ticketsToRender) {
         } else {
             actionButtons = historyButton;
         }
-        rowsHtml += `<tr><td>${index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
+        // Nomor urut sesuai halaman
+        rowsHtml += `<tr><td>${startIdx + index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
     });
     tbody.innerHTML = rowsHtml;
 }
 
 function changePage(page) {
-    fetchAndRenderTickets(currentView, page);
+    if (filteredTicketsCache.length > 0) {
+        applyFiltersAndRender(page);
+    } else {
+        fetchAndRenderTickets(currentView, page);
+    }
 }
 
 function renderPagination(totalPages, currentPage) {
@@ -300,13 +318,13 @@ function renderPagination(totalPages, currentPage) {
     }
     let paginationHtml = '<ul class="pagination justify-content-center">';
     const prevDisabled = currentPage === 1 ? 'disabled' : '';
-    paginationHtml += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a></li>`;
+    paginationHtml += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1});return false;">Previous</a></li>`;
     for (let i = 1; i <= totalPages; i++) {
         const active = i === currentPage ? 'active' : '';
-        paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
+        paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="changePage(${i});return false;">${i}</a></li>`;
     }
     const nextDisabled = currentPage === totalPages ? 'disabled' : '';
-    paginationHtml += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a></li>`;
+    paginationHtml += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1});return false;">Next</a></li>`;
     paginationHtml += '</ul>';
     paginationContainer.innerHTML = paginationHtml;
 }
@@ -509,29 +527,36 @@ async function handleChangePassword(event) {
 }
 
 async function showHistory(ticketId, displayId) {
-    const modalTitle = document.getElementById('historyModalTitle');
-    const modalBody = document.getElementById('historyModalBody');
-    modalTitle.innerText = `Riwayat Perubahan Tiket: ${displayId}`;
-    modalBody.innerHTML = '<p class="text-center">Memuat riwayat...</p>';
-    historyModal.show();
+    const modalBody = document.getElementById('history-modal-body');
+    const modalTitle = document.getElementById('history-modal-title');
+    modalTitle.innerText = `Riwayat Tiket: ${displayId}`;
+    modalBody.innerHTML = `<p class="text-center">Memuat riwayat...</p>`;
     try {
         const response = await fetch(`${API_URL_TICKETS}/${ticketId}/history`, { headers: authHeaders });
-        if (!response.ok) throw new Error('Gagal mengambil data riwayat');
-        const historyData = await response.json();
-        if (historyData.length === 0) {
-            modalBody.innerHTML = '<p class="text-center">Belum ada riwayat perubahan untuk tiket ini.</p>';
-            return;
+        if (!response.ok) throw new Error('Gagal mengambil riwayat.');
+        const history = await response.json();
+        if (!Array.isArray(history) || history.length === 0) {
+            modalBody.innerHTML = `<p class="text-center text-muted">Belum ada riwayat perubahan.</p>`;
+        } else {
+            let html = '<ul class="list-group">';
+            history.forEach(item => {
+                html += `<li class="list-group-item">
+                    <div><strong>Status:</strong> ${item.status || ''}</div>
+                    <div><strong>Update Progres:</strong> ${item.update_progres || ''}</div>
+                    <div><strong>Teknisi:</strong> ${item.technician_details || ''}</div>
+                    <div><strong>Updated By:</strong> ${item.updated_by || ''}</div>
+                    <div><small class="text-muted">${formatDateTime(item.updated_at)}</small></div>
+                </li>`;
+            });
+            html += '</ul>';
+            modalBody.innerHTML = html;
         }
-        let historyHtml = '<ul class="list-group list-group-flush">';
-        historyData.forEach(item => {
-            historyHtml += `<li class="list-group-item"><p class="mb-1">${item.change_details}</p><small class="text-muted">Oleh: <strong>${item.changed_by}</strong> pada ${formatDateTime(item.change_timestamp)}</small></li>`;
-        });
-        historyHtml += '</ul>';
-        modalBody.innerHTML = historyHtml;
+        historyModal.show();
     } catch (error) {
         modalBody.innerHTML = `<p class="text-center text-danger">${error.message}</p>`;
     }
 }
+
 
 // --- FUNGSI HELPERS & UTILITAS ---
 
