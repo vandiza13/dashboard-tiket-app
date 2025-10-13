@@ -116,7 +116,7 @@ body {
 }
 
 /* Lebar Kolom Tabel */
-.table th:nth-child(1), .table td:nth-child(1) { width: 5ch; }
+.table th:nth-child(1), .table td:nth-child(1) { width: 6ch; }
 .table th:nth-child(2), .table td:nth-child(2) { width: 22ch; }
 .table th:nth-child(3), .table td:nth-child(3) { width: 10ch; }
 .table th:nth-child(4), .table td:nth-child(4) { width: 14ch; }

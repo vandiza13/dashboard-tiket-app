@@ -280,26 +280,32 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
 
     if (isFiltered) {
         // Pagination lokal
-        renderTable(filteredTicketsCache, currentPage);
+        renderTable(filteredTicketsCache, currentPage, false);
         renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
     } else {
         // Pagination backend
-        renderTable(filteredTicketsCache, currentPage);
+        renderTable(filteredTicketsCache, currentPage, true);
         renderPagination(backendTotalPages, currentPage);
     }
 }
 
-function renderTable(ticketsToRender, page = 1) {
+function renderTable(ticketsToRender, page = 1, useBackendPagination = false) {
     const tbody = document.getElementById('ticket-table-body');
     const localUserRole = localStorage.getItem('userRole');
     if (!ticketsToRender || ticketsToRender.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center">Data tiket tidak ditemukan.</td></tr>`;
         return;
     }
-    // Pagination logic
-    const startIdx = (page - 1) * PAGE_SIZE;
-    const endIdx = startIdx + PAGE_SIZE;
-    const pagedTickets = ticketsToRender.slice(startIdx, endIdx);
+    let pagedTickets, startIdx;
+    if (useBackendPagination) {
+        pagedTickets = ticketsToRender;
+        startIdx = (currentPage - 1) * PAGE_SIZE;
+    } else {
+        // Pagination logic lokal
+        startIdx = (page - 1) * PAGE_SIZE;
+        const endIdx = startIdx + PAGE_SIZE;
+        pagedTickets = ticketsToRender.slice(startIdx, endIdx);
+    }
 
     let rowsHtml = '';
     pagedTickets.forEach((ticket, index) => {
