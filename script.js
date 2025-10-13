@@ -50,7 +50,6 @@ async function router() {
     const contentArea = document.getElementById('content-area');
     const mainActions = document.getElementById('main-actions');
     const dateFilterContainer = document.getElementById('date-filter-container');
-    const exportBtn = document.getElementById('export-btn');
 
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         link.classList.remove('active');
@@ -58,8 +57,7 @@ async function router() {
     });
 
     mainActions.style.display = 'flex'; 
-    dateFilterContainer.style.display = 'none';
-    exportBtn.style.display = 'none'; // Selalu sembunyikan di awal
+    dateFilterContainer.style.display = 'none'; 
 
     switch (hash) {
         case '#running':
@@ -72,7 +70,6 @@ async function router() {
             pageTitle.innerText = 'Tiket Closed';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex'; 
-            exportBtn.style.display = 'block'; // Tampilkan tombol export
             await fetchAndRenderTickets('closed');
             break;
         case '#stats':
