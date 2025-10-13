@@ -7,7 +7,7 @@ let addTicketModal, updateTicketModal, reportModal, techniciansModal, editTechni
 let ticketsCache = [], activeTechniciansCache = [];
 let currentCategoryFilter = 'Semua';
 let currentEditingTicket = null;
-let currentView = 'running'; // KUNCI PERBAIKAN: Variabel untuk mengingat view saat ini
+let currentView = 'running'; // KUNCI: Variabel untuk mengingat view saat ini
 const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
 
 const categories = {
@@ -64,14 +64,14 @@ async function router() {
 
     switch (hash) {
         case '#running':
-            currentView = 'running'; // KUNCI PERBAIKAN: Set view saat ini
+            currentView = 'running'; // Set view saat ini
             pageTitle.innerText = 'Tiket Running';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex'; 
             await fetchAndRenderTickets('running');
             break;
         case '#closed':
-            currentView = 'closed'; // KUNCI PERBAIKAN: Set view saat ini
+            currentView = 'closed'; // Set view saat ini
             pageTitle.innerText = 'Tiket Closed';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex'; 
@@ -139,7 +139,7 @@ async function fetchAndRenderTickets(type, page = 1) {
                 categoryTabs.querySelector('.nav-link').classList.add('active');
             }
             applyFiltersAndRender();
-            renderPagination(data.totalPages, data.currentPage); // Hapus 'type'
+            renderPagination(data.totalPages, data.currentPage);
         } else { throw new Error(data.error || 'Format data salah.'); }
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal memuat data.</td></tr>`;
@@ -189,58 +189,26 @@ async function fetchAndRenderStats() {
             </div>
         </div>
     `;
-
     try {
         const response = await fetch(`${API_BASE_URL}/api/stats`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
-
-        document.getElementById('total-running-stat').innerText = stats.runningStats.total;
-        document.getElementById('total-closed-today-stat').innerText = stats.closedTodayStats.total;
-
+        document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
+        document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
         const createBarChart = (canvasId, chartLabel, data) => {
             const chartElement = document.getElementById(canvasId);
             if (!chartElement) return;
             const ctx = chartElement.getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: data.map(item => item.subcategory),
-                    datasets: [{
-                        label: chartLabel,
-                        data: data.map(item => item.count),
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                    plugins: { legend: { display: false } }
-                }
+                data: { labels: data.map(d => d.subcategory), datasets: [{ label: chartLabel, data: data.map(d => d.count), backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
             });
         };
-        
-        if (stats.runningStats.bySubcategory.length > 0) {
-            createBarChart('runningChart', 'Jumlah Tiket Running', stats.runningStats.bySubcategory);
-        } else {
-             document.getElementById('runningChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>';
-        }
-
-        if (stats.closedTodayStats.bySubcategory.length > 0) {
-            createBarChart('closedTodayChart', 'Jumlah Tiket Selesai Hari Ini', stats.closedTodayStats.bySubcategory);
-        } else {
-            document.getElementById('closedTodayChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
-        }
-
-    } catch(error) {
-        contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
-    }
+        if (stats.runningDetails.bySubcategory.length > 0) { createBarChart('runningChart', 'Jumlah Tiket Running', stats.runningDetails.bySubcategory); } else { document.getElementById('runningChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>'; }
+        if (stats.closedTodayDetails.bySubcategory.length > 0) { createBarChart('closedTodayChart', 'Jumlah Tiket Selesai Hari Ini', stats.closedTodayDetails.bySubcategory); } else { document.getElementById('closedTodayChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>'; }
+    } catch(error) { contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`; }
 }
-
 
 async function fetchActiveTechnicians() {
      try {
@@ -264,12 +232,6 @@ async function fetchTechnicians() {
 // --- FUNGSI FILTER & RENDER ---
 
 function applyDateFilter() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    if (startDate && !endDate || !startDate && endDate) {
-        alert("Harap isi kedua tanggal (Dari Tanggal dan Sampai Tanggal).");
-        return;
-    }
     router();
 }
 
@@ -338,15 +300,12 @@ function renderPagination(totalPages, currentPage) {
     }
     let paginationHtml = '<ul class="pagination justify-content-center">';
     const prevDisabled = currentPage === 1 ? 'disabled' : '';
-    // PERBAIKAN: Panggil changePage()
     paginationHtml += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a></li>`;
     for (let i = 1; i <= totalPages; i++) {
         const active = i === currentPage ? 'active' : '';
-        // PERBAIKAN: Panggil changePage()
         paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
     }
     const nextDisabled = currentPage === totalPages ? 'disabled' : '';
-    // PERBAIKAN: Panggil changePage()
     paginationHtml += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a></li>`;
     paginationHtml += '</ul>';
     paginationContainer.innerHTML = paginationHtml;
@@ -593,6 +552,36 @@ function generateReport() {
     });
     document.getElementById('report-textarea').value = t;
     reportModal.show();
+}
+
+async function exportClosedTickets() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    let url = `${API_URL_TICKETS}/closed/export`;
+
+    if (startDate && endDate) {
+        url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+
+    try {
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+        if (!response.ok) {
+            throw new Error('Gagal mengekspor data. Tidak ada data pada rentang tanggal ini.');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Laporan Tiket Closed - ${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 function copyReportToClipboard() {
