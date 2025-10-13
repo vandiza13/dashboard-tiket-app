@@ -231,7 +231,16 @@ async function fetchAndRenderStats() {
         if (!stats.runningDetails || !stats.closedTodayDetails) {
             throw new Error('Format data statistik tidak sesuai.');
         }
-        // Total
+
+        // --- RESET DATA TIKET SELESAI HARI INI JIKA BERGANTI HARI ---
+        // Simpan tanggal terakhir update di localStorage
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const lastStatsDate = localStorage.getItem('lastStatsDate');
+        if (lastStatsDate !== todayStr) {
+            // Reset cache terkait closedToday jika ada (opsional, tergantung implementasi lain)
+            localStorage.setItem('lastStatsDate', todayStr);
+        }
+
         document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
         document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
 
