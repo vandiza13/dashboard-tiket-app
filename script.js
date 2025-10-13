@@ -225,7 +225,7 @@ async function fetchAndRenderStats() {
         </div>
     `;
     try {
-        const response = await fetch(`${API_BASE_URL}/api/stats`, { headers: authHeaders });
+        const response = await fetch(`${API_BASE_URL}/api/stats?ts=${Date.now()}`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
         if (!stats.runningDetails || !stats.closedTodayDetails) {
@@ -233,13 +233,7 @@ async function fetchAndRenderStats() {
         }
 
         // --- RESET DATA TIKET SELESAI HARI INI JIKA BERGANTI HARI ---
-        // Simpan tanggal terakhir update di localStorage
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const lastStatsDate = localStorage.getItem('lastStatsDate');
-        if (lastStatsDate !== todayStr) {
-            // Reset cache terkait closedToday jika ada (opsional, tergantung implementasi lain)
-            localStorage.setItem('lastStatsDate', todayStr);
-        }
+        // Tidak perlu cache, cukup tampilkan data dari backend yang sudah otomatis filter hari ini
 
         document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
         document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
