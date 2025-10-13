@@ -3,6 +3,8 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Parser } = require('json2csv');
+
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -203,6 +205,72 @@ app.get('/api/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), asy
         });
     } catch (err) {
         res.status(500).json({ error: `Gagal mengambil tiket closed` });
+    }
+});
+
+// ENDPOINT BARU: Export tiket closed ke CSV
+app.get('/api/tickets/closed/export', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    let whereClause = `WHERE t.status = 'CLOSED'`;
+    const params = [];
+    if (startDate && endDate) {
+        whereClause += ' AND DATE(t.tiket_time) BETWEEN ? AND ?';
+        params.push(startDate, endDate);
+    }
+    
+    // Query ini mengambil SEMUA data yang cocok, mengabaikan pagination
+    const sql = `
+        SELECT 
+            t.id_tiket,
+            t.category,
+            t.subcategory,
+            t.tiket_time,
+            t.last_update_time,
+            t.deskripsi,
+            t.status,
+            GROUP_CONCAT(tech.name SEPARATOR ', ') as teknisi_nama,
+            t.update_progres,
+            t.updated_by
+        FROM tickets t 
+        LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) 
+        ${whereClause} 
+        GROUP BY t.id 
+        ORDER BY t.tiket_time DESC;
+    `;
+
+    try {
+        const [results] = await db.query(sql, params);
+
+        if (results.length === 0) {
+            return res.status(404).send("Tidak ada data untuk diexport pada rentang tanggal ini.");
+        }
+
+        // Tentukan kolom dan header untuk file CSV
+        const fields = [
+            { label: 'ID Tiket', value: 'id_tiket' },
+            { label: 'Kategori', value: 'category' },
+            { label: 'Jenis Tiket', value: 'subcategory' },
+            { label: 'Waktu Tiket', value: 'tiket_time' },
+            { label: 'Waktu Selesai', value: 'last_update_time' },
+            { label: 'Deskripsi', value: 'deskripsi' },
+            { label: 'Status', value: 'status' },
+            { label: 'Teknisi', value: 'teknisi_nama' },
+            { label: 'Update Progres', value: 'update_progres' },
+            { label: 'Diupdate Oleh', value: 'updated_by' }
+        ];
+        
+        const json2csvParser = new Parser({ fields });
+        const csv = json2csvParser.parse(results);
+
+        // Atur header agar browser mengunduh file
+        res.header('Content-Type', 'text/csv');
+        res.attachment(`Laporan Tiket Closed - ${new Date().toISOString().slice(0,10)}.csv`);
+        res.send(csv);
+
+    } catch (err) {
+        console.error("Error exporting closed tickets:", err);
+        res.status(500).json({ error: 'Gagal mengekspor data' });
     }
 });
 

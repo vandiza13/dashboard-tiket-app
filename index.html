@@ -43,6 +43,7 @@
                     <h1 id="page-title" class="h3 mb-0">Dashboard</h1>
                 </div>
                 <div class="btn-group" id="main-actions">
+                    <button type="button" class="btn btn-success" id="export-btn" onclick="exportClosedTickets()" style="display: none;"><i class="bi bi-file-earmark-excel"></i> Export to Excel</button>
                     <button type="button" class="btn btn-secondary" id="manage-technicians-btn" data-bs-toggle="modal" data-bs-target="#techniciansModal" onclick="fetchTechnicians()">Daftar Teknisi</button>
                     <button type="button" class="btn btn-info text-white" onclick="generateReport()">Generate Laporan</button>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTicketModal" id="add-ticket-btn">+ Tambah Tiket</button>

@@ -596,3 +596,33 @@ function updateSubcategoryOptions(event) {
         subcategorySelect.disabled = false;
     } else { subcategorySelect.disabled = true; }
 }
+
+async function exportClosedTickets() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    let url = `${API_URL_TICKETS}/closed/export`;
+
+    if (startDate && endDate) {
+        url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+
+    try {
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+        if (!response.ok) {
+            throw new Error('Gagal mengekspor data. Tidak ada data pada rentang tanggal ini.');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Laporan Tiket Closed - ${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+
+    } catch (error) {
+        alert(error.message);
+    }
+}
