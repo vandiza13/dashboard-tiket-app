@@ -178,9 +178,9 @@ async function fetchAndRenderStats() {
                         <h5 class="mb-0">Tiket Sedang Berjalan (Running)</h5>
                         <span class="badge bg-primary rounded-pill fs-5" id="total-running-stat">...</span>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" id="running-details-body">
                         <p class="text-muted">Rincian per Jenis Tiket (Sub-kategori):</p>
-                        <canvas id="runningChart"></canvas>
+                        <div id="running-subcat-list"></div>
                     </div>
                 </div>
             </div>
@@ -190,9 +190,9 @@ async function fetchAndRenderStats() {
                         <h5 class="mb-0">Tiket Selesai Hari Ini</h5>
                         <span class="badge bg-success rounded-pill fs-5" id="total-closed-today-stat">...</span>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" id="closed-today-details-body">
                         <p class="text-muted">Rincian per Jenis Tiket (Sub-kategori):</p>
-                        <canvas id="closedTodayChart"></canvas>
+                        <div id="closed-today-subcat-list"></div>
                     </div>
                 </div>
             </div>
@@ -202,25 +202,46 @@ async function fetchAndRenderStats() {
         const response = await fetch(`${API_BASE_URL}/api/stats`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
-        // Tambahkan pengecekan agar tidak error jika response tidak sesuai
         if (!stats.runningDetails || !stats.closedTodayDetails) {
             throw new Error('Format data statistik tidak sesuai.');
         }
+        // Total
         document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
         document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
-        const createBarChart = (canvasId, chartLabel, data) => {
-            const chartElement = document.getElementById(canvasId);
-            if (!chartElement) return;
-            const ctx = chartElement.getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: { labels: data.map(d => d.subcategory), datasets: [{ label: chartLabel, data: data.map(d => d.count), backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+
+        // Rincian per subkategori (angka saja, tanpa diagram)
+        const runningListDiv = document.getElementById('running-subcat-list');
+        if (stats.runningDetails.bySubcategory.length > 0) {
+            let html = '<ul class="list-group">';
+            stats.runningDetails.bySubcategory.forEach(item => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${item.subcategory || '-'}
+                    <span class="badge bg-primary rounded-pill">${item.count}</span>
+                </li>`;
             });
-        };
-        if (stats.runningDetails.bySubcategory.length > 0) { createBarChart('runningChart', 'Jumlah Tiket Running', stats.runningDetails.bySubcategory); } else { document.getElementById('runningChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>'; }
-        if (stats.closedTodayDetails.bySubcategory.length > 0) { createBarChart('closedTodayChart', 'Jumlah Tiket Selesai Hari Ini', stats.closedTodayDetails.bySubcategory); } else { document.getElementById('closedTodayChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>'; }
-    } catch(error) { contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`; }
+            html += '</ul>';
+            runningListDiv.innerHTML = html;
+        } else {
+            runningListDiv.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>';
+        }
+
+        const closedListDiv = document.getElementById('closed-today-subcat-list');
+        if (stats.closedTodayDetails.bySubcategory.length > 0) {
+            let html = '<ul class="list-group">';
+            stats.closedTodayDetails.bySubcategory.forEach(item => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${item.subcategory || '-'}
+                    <span class="badge bg-success rounded-pill">${item.count}</span>
+                </li>`;
+            });
+            html += '</ul>';
+            closedListDiv.innerHTML = html;
+        } else {
+            closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
+        }
+    } catch(error) {
+        contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
+    }
 }
 
 async function fetchActiveTechnicians() {
