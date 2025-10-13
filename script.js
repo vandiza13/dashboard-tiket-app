@@ -6,6 +6,8 @@ const API_URL_TECHNICIANS = `${API_BASE_URL}/api/technicians`;
 let addTicketModal, updateTicketModal, reportModal, techniciansModal, editTechnicianModal, historyModal;
 let ticketsCache = [], activeTechniciansCache = [];
 let currentCategoryFilter = 'Semua';
+let currentEditingTicket = null;
+let currentView = 'running'; // KUNCI PERBAIKAN: Variabel untuk mengingat view saat ini
 const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
 
 const categories = {
@@ -49,6 +51,7 @@ async function router() {
     const contentArea = document.getElementById('content-area');
     const mainActions = document.getElementById('main-actions');
     const dateFilterContainer = document.getElementById('date-filter-container');
+    const exportBtn = document.getElementById('export-btn');
 
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         link.classList.remove('active');
@@ -56,19 +59,23 @@ async function router() {
     });
 
     mainActions.style.display = 'flex'; 
-    dateFilterContainer.style.display = 'none'; 
+    dateFilterContainer.style.display = 'none';
+    if(exportBtn) exportBtn.style.display = 'none';
 
     switch (hash) {
         case '#running':
+            currentView = 'running'; // KUNCI PERBAIKAN: Set view saat ini
             pageTitle.innerText = 'Tiket Running';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex'; 
             await fetchAndRenderTickets('running');
             break;
         case '#closed':
+            currentView = 'closed'; // KUNCI PERBAIKAN: Set view saat ini
             pageTitle.innerText = 'Tiket Closed';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex'; 
+            if(exportBtn) exportBtn.style.display = 'block';
             await fetchAndRenderTickets('closed');
             break;
         case '#stats':
@@ -96,7 +103,7 @@ function createTicketTableHTML() {
           <li class="nav-item"><a class="nav-link" onclick="filterByCategory('CENTRATAMA', this)">CENTRATAMA</a></li>
         </ul>
         <div class="mb-3"><input type="search" id="searchInput" class="form-control" placeholder="🔍 Cari di dalam tab ini..." oninput="applyFiltersAndRender()"></div>
-        <div class="table-responsive"><table class="table table-striped table-hover table-bordered"><thead class="table-dark"><tr><th>No.</th><th>ID Tiket</th><th>Kategori</th><th>Waktu Tiket</th><th>Waktu Update</th><th>Deskripsi</th><th>Status</th><th>Teknisi</th><th>Update Progres</th><th>Update By</th><th>Aksi</th></tr></thead><tbody id="ticket-table-body"></tbody></table></div>
+        <div class="table-responsive"><table class="table"><thead class="table-dark"><tr><th>No.</th><th>ID Tiket</th><th>Jenis Tiket</th><th>Waktu Tiket</th><th>Update Terakhir</th><th>Deskripsi</th><th>Status</th><th>Teknisi</th><th>Update Progres</th><th>Updated By</th><th>Aksi</th></tr></thead><tbody id="ticket-table-body"></tbody></table></div>
         <nav id="pagination-container" class="mt-3"></nav>
     `;
 }
@@ -114,7 +121,7 @@ async function fetchAndRenderTickets(type, page = 1) {
         url += `&startDate=${startDate}&endDate=${endDate}`;
     }
 
-    tbody.innerHTML = `<tr><td colspan="12" class="text-center">Memuat data...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="text-center">Memuat data...</td></tr>`;
     if (paginationContainer) paginationContainer.innerHTML = '';
 
     try {
@@ -132,10 +139,10 @@ async function fetchAndRenderTickets(type, page = 1) {
                 categoryTabs.querySelector('.nav-link').classList.add('active');
             }
             applyFiltersAndRender();
-            renderPagination(data.totalPages, data.currentPage, type);
+            renderPagination(data.totalPages, data.currentPage); // Hapus 'type'
         } else { throw new Error(data.error || 'Format data salah.'); }
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="12" class="text-center text-danger">Gagal memuat data.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal memuat data.</td></tr>`;
         if (paginationContainer) paginationContainer.innerHTML = '';
     }
 }
@@ -156,34 +163,84 @@ async function fetchAndRenderStats() {
     const contentArea = document.getElementById('content-area');
     contentArea.innerHTML = `
         <div class="row">
-            <div class="col-md-6 mb-4"><div class="card h-100"><div class="card-body text-center"><h5 class="card-title text-muted">Total Tiket Running</h5><p class="card-text fs-1 fw-bold" id="total-running-stat">...</p></div></div></div>
-            <div class="col-md-6 mb-4"><div class="card h-100"><div class="card-body text-center"><h5 class="card-title text-muted">Tiket Selesai Bulan Ini</h5><p class="card-text fs-1 fw-bold" id="closed-this-month-stat">...</p></div></div></div>
-            <div class="col-md-5 mb-4"><div class="card"><div class="card-header">Distribusi Status Tiket</div><div class="card-body"><canvas id="statusChart"></canvas></div></div></div>
-            <div class="col-md-7 mb-4"><div class="card"><div class="card-header">Distribusi Kategori Tiket</div><div class="card-body"><canvas id="categoryChart"></canvas></div></div></div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Tiket Sedang Berjalan (Running)</h5>
+                        <span class="badge bg-primary rounded-pill fs-5" id="total-running-stat">...</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Rincian per Jenis Tiket (Sub-kategori):</p>
+                        <canvas id="runningChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Tiket Selesai Hari Ini</h5>
+                        <span class="badge bg-success rounded-pill fs-5" id="total-closed-today-stat">...</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Rincian per Jenis Tiket (Sub-kategori):</p>
+                        <canvas id="closedTodayChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/stats`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
-        document.getElementById('total-running-stat').innerText = stats.overview.totalRunning;
-        document.getElementById('closed-this-month-stat').innerText = stats.overview.closedThisMonth;
-        const statusCtx = document.getElementById('statusChart').getContext('2d');
-        new Chart(statusCtx, {
-            type: 'pie',
-            data: { labels: stats.statusDistribution.map(item => item.status), datasets: [{ label: 'Jumlah Tiket', data: stats.statusDistribution.map(item => item.count), backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)'], borderColor: 'white', borderWidth: 2 }] },
-            options: { responsive: true, maintainAspectRatio: true }
-        });
-        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-        new Chart(categoryCtx, {
-            type: 'bar',
-            data: { labels: stats.categoryDistribution.map(item => item.category), datasets: [{ label: 'Jumlah Tiket per Kategori', data: stats.categoryDistribution.map(item => item.count), backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
+
+        document.getElementById('total-running-stat').innerText = stats.runningStats.total;
+        document.getElementById('total-closed-today-stat').innerText = stats.closedTodayStats.total;
+
+        const createBarChart = (canvasId, chartLabel, data) => {
+            const chartElement = document.getElementById(canvasId);
+            if (!chartElement) return;
+            const ctx = chartElement.getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(item => item.subcategory),
+                    datasets: [{
+                        label: chartLabel,
+                        data: data.map(item => item.count),
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        };
+        
+        if (stats.runningStats.bySubcategory.length > 0) {
+            createBarChart('runningChart', 'Jumlah Tiket Running', stats.runningStats.bySubcategory);
+        } else {
+             document.getElementById('runningChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>';
+        }
+
+        if (stats.closedTodayStats.bySubcategory.length > 0) {
+            createBarChart('closedTodayChart', 'Jumlah Tiket Selesai Hari Ini', stats.closedTodayStats.bySubcategory);
+        } else {
+            document.getElementById('closedTodayChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
+        }
+
     } catch(error) {
         contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
     }
 }
+
 
 async function fetchActiveTechnicians() {
      try {
@@ -269,6 +326,7 @@ function renderTable(ticketsToRender) {
     tbody.innerHTML = rowsHtml;
 }
 
+// PERBAIKAN: Fungsi baru untuk menangani klik pagination
 function changePage(page) {
     fetchAndRenderTickets(currentView, page);
 }
@@ -281,15 +339,12 @@ function renderPagination(totalPages, currentPage) {
     }
     let paginationHtml = '<ul class="pagination justify-content-center">';
     const prevDisabled = currentPage === 1 ? 'disabled' : '';
-    // PERBAIKAN: Panggil changePage()
     paginationHtml += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a></li>`;
     for (let i = 1; i <= totalPages; i++) {
         const active = i === currentPage ? 'active' : '';
-        // PERBAIKAN: Panggil changePage()
         paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
     }
     const nextDisabled = currentPage === totalPages ? 'disabled' : '';
-    // PERBAIKAN: Panggil changePage()
     paginationHtml += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a></li>`;
     paginationHtml += '</ul>';
     paginationContainer.innerHTML = paginationHtml;
@@ -397,27 +452,21 @@ async function handleFormSubmit() {
     }
 }
 
-
 function openUpdateModal(ticket) {
-    currentEditingTicket = ticket; // Simpan data tiket saat ini
+    currentEditingTicket = ticket;
     const userRole = localStorage.getItem('userRole');
-
     document.getElementById('update_ticket_id').value = ticket.id;
     document.getElementById('update_id_tiket_display').value = ticket.id_tiket;
     document.getElementById('update_status').value = ticket.status;
     document.getElementById('update_progres').value = ticket.update_progres || '';
-
     const categoryDiv = document.getElementById('update_category').parentElement;
     const subcategoryDiv = document.getElementById('update_subcategory').parentElement;
-    
-    // Logika untuk menampilkan/menyembunyikan field kategori
     if (userRole === 'User') {
         categoryDiv.style.display = 'none';
         subcategoryDiv.style.display = 'none';
-    } else { // Untuk Admin
+    } else {
         categoryDiv.style.display = 'block';
         subcategoryDiv.style.display = 'block';
-        
         const categorySelect = document.getElementById('update_category');
         categorySelect.value = ticket.category;
         categorySelect.dispatchEvent(new Event('change'));
@@ -425,7 +474,6 @@ function openUpdateModal(ticket) {
             document.getElementById('update_subcategory').value = ticket.subcategory;
         }, 50);
     }
-
     const techCheckboxes = document.getElementById('technician-checkboxes-update');
     techCheckboxes.innerHTML = '';
     const assignedTechnicianNiks = ticket.teknisi ? ticket.teknisi.split(',') : [];
@@ -440,33 +488,18 @@ async function handleUpdateSubmit() {
     const selectedTechnicianNiks = [];
     document.querySelectorAll('#technician-checkboxes-update input[type="checkbox"]:checked').forEach(checkbox => { selectedTechnicianNiks.push(checkbox.value); });
     if (selectedTechnicianNiks.length > 5) { alert("Maksimal 5 teknisi."); return; }
-
     const id = document.getElementById('update_ticket_id').value;
     const userRole = localStorage.getItem('userRole');
-
-    // Buat objek data dasar
-    const d = {
-        status: document.getElementById('update_status').value,
-        teknisi: selectedTechnicianNiks,
-        update_progres: document.getElementById('update_progres').value
-    };
-
-    // Tambahkan data kategori HANYA jika Admin
+    const d = { status: document.getElementById('update_status').value, teknisi: selectedTechnicianNiks, update_progres: document.getElementById('update_progres').value };
     if (userRole === 'Admin') {
         d.category = document.getElementById('update_category').value;
         d.subcategory = document.getElementById('update_subcategory').value;
     } else {
-        // Jika User, kirim kembali data kategori asli agar tidak terhapus
         d.category = currentEditingTicket.category;
         d.subcategory = currentEditingTicket.subcategory;
     }
-
     try {
-        const r = await fetch(`${API_URL_TICKETS}/${id}`, {
-            method: 'PUT',
-            headers: authHeaders,
-            body: JSON.stringify(d)
-        });
+        const r = await fetch(`${API_URL_TICKETS}/${id}`, { method: 'PUT', headers: authHeaders, body: JSON.stringify(d) });
         if (!r.ok) throw new Error('Gagal');
         updateTicketModal.hide();
         router();
@@ -474,7 +507,6 @@ async function handleUpdateSubmit() {
         alert('Gagal menyimpan.');
     }
 }
-
 
 function confirmDeleteTicket(id) {
     if (confirm("Yakin hapus tiket ini?")) {
@@ -604,4 +636,3 @@ function updateSubcategoryOptions(event) {
         subcategorySelect.disabled = false;
     } else { subcategorySelect.disabled = true; }
 }
-
