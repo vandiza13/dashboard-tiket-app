@@ -22,6 +22,9 @@ let filteredTicketsCache = [];
 let currentPage = 1;
 const PAGE_SIZE = 20;
 
+// Tambahkan variabel global untuk pagination backend
+let backendTotalPages = 1;
+
 // Inisialisasi Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
     addTicketModal = new bootstrap.Modal(document.getElementById('addTicketModal'));
@@ -137,14 +140,15 @@ async function fetchAndRenderTickets(type, page = 1) {
         
         if (data && Array.isArray(data.tickets)) {
             ticketsCache = data.tickets;
+            backendTotalPages = data.totalPages || 1;
+            currentPage = data.currentPage || 1;
             currentCategoryFilter = 'Semua';
             const categoryTabs = document.querySelector('.category-tabs');
             if (categoryTabs) {
                 categoryTabs.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
                 categoryTabs.querySelector('.nav-link').classList.add('active');
             }
-            applyFiltersAndRender(1); // Selalu mulai dari halaman 1 setelah fetch
-            // renderPagination(data.totalPages, data.currentPage); // Tidak perlu, pagination sekarang berdasarkan filter
+            applyFiltersAndRender(currentPage, true); // true = gunakan backend pagination
         } else { throw new Error(data.error || 'Format data salah.'); }
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal memuat data.</td></tr>`;
@@ -253,24 +257,36 @@ function filterByCategory(category, clickedTab) {
     applyFiltersAndRender();
 }
 
-function applyFiltersAndRender(page = 1) {
+function applyFiltersAndRender(page = 1, useBackendPagination = false) {
     let filteredTickets = ticketsCache;
+    const searchInput = document.getElementById('searchInput');
+    let isFiltered = false;
+
     if (currentCategoryFilter !== 'Semua') {
         filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
+        isFiltered = true;
     }
-    const searchInput = document.getElementById('searchInput');
-    if(searchInput) {
+    if (searchInput) {
         const searchTerm = searchInput.value.toLowerCase();
         if (searchTerm) {
             filteredTickets = filteredTickets.filter(ticket => 
                 Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
             );
+            isFiltered = true;
         }
     }
-    filteredTicketsCache = filteredTickets; // simpan hasil filter
+    filteredTicketsCache = filteredTickets;
     currentPage = page;
-    renderTable(filteredTicketsCache, currentPage);
-    renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
+
+    if (isFiltered) {
+        // Pagination lokal
+        renderTable(filteredTicketsCache, currentPage);
+        renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
+    } else {
+        // Pagination backend
+        renderTable(filteredTicketsCache, currentPage);
+        renderPagination(backendTotalPages, currentPage);
+    }
 }
 
 function renderTable(ticketsToRender, page = 1) {
@@ -303,7 +319,10 @@ function renderTable(ticketsToRender, page = 1) {
 }
 
 function changePage(page) {
-    if (filteredTicketsCache.length > 0) {
+    const searchInput = document.getElementById('searchInput');
+    const isFiltered = (currentCategoryFilter !== 'Semua') ||
+        (searchInput && searchInput.value.trim() !== '');
+    if (isFiltered) {
         applyFiltersAndRender(page);
     } else {
         fetchAndRenderTickets(currentView, page);

@@ -156,7 +156,9 @@ app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, 
 
 app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     const { startDate, endDate, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const offset = (pageNum - 1) * limitNum;
     let whereClause = `WHERE t.status IN ('OPEN', 'SC')`;
     const params = [];
     if (startDate && endDate) {
@@ -164,16 +166,16 @@ app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), as
         params.push(startDate, endDate);
     }
     const countSql = `SELECT COUNT(*) as total FROM tickets t ${whereClause}`;
-    const dataSql = `SELECT t.*, GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details FROM tickets t LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) ${whereClause} GROUP BY t.id ORDER BY t.tiket_time ASC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)};`;
+    const dataSql = `SELECT t.*, GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details FROM tickets t LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) ${whereClause} GROUP BY t.id ORDER BY t.tiket_time ASC LIMIT ? OFFSET ?;`;
     try {
         const [countResult] = await db.query(countSql, params);
         const totalItems = countResult[0].total;
-        const totalPages = Math.ceil(totalItems / limit);
-        const [results] = await db.query(dataSql, params);
+        const totalPages = Math.max(1, Math.ceil(totalItems / limitNum));
+        const [results] = await db.query(dataSql, [...params, limitNum, offset]);
         res.json({
-            tickets: results,
+            tickets: Array.isArray(results) ? results : [],
             totalPages: totalPages,
-            currentPage: parseInt(page),
+            currentPage: pageNum,
             totalItems: totalItems
         });
     } catch (err) {
@@ -183,7 +185,9 @@ app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), as
 
 app.get('/api/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => {
     const { startDate, endDate, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const offset = (pageNum - 1) * limitNum;
     let whereClause = `WHERE t.status = 'CLOSED'`;
     const params = [];
     if (startDate && endDate) {
@@ -191,16 +195,16 @@ app.get('/api/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), asy
         params.push(startDate, endDate);
     }
     const countSql = `SELECT COUNT(*) as total FROM tickets t ${whereClause}`;
-    const dataSql = `SELECT t.*, GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details FROM tickets t LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) ${whereClause} GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)};`;
+    const dataSql = `SELECT t.*, GROUP_CONCAT(CONCAT(tech.name, ' (', tech.phone_number, ')') SEPARATOR ', ') as technician_details FROM tickets t LEFT JOIN technicians tech ON FIND_IN_SET(tech.nik, t.teknisi) ${whereClause} GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ? OFFSET ?;`;
     try {
         const [countResult] = await db.query(countSql, params);
         const totalItems = countResult[0].total;
-        const totalPages = Math.ceil(totalItems / limit);
-        const [results] = await db.query(dataSql, params);
+        const totalPages = Math.max(1, Math.ceil(totalItems / limitNum));
+        const [results] = await db.query(dataSql, [...params, limitNum, offset]);
         res.json({
-            tickets: results,
+            tickets: Array.isArray(results) ? results : [],
             totalPages: totalPages,
-            currentPage: parseInt(page),
+            currentPage: pageNum,
             totalItems: totalItems
         });
     } catch (err) {
