@@ -25,6 +25,9 @@ const PAGE_SIZE = 20;
 // Tambahkan variabel global untuk pagination backend
 let backendTotalPages = 1;
 
+// Tambahkan variabel global untuk cache semua tiket closed
+let allClosedTicketsCache = []; // cache semua tiket closed untuk search global
+
 // Inisialisasi Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
     addTicketModal = new bootstrap.Modal(document.getElementById('addTicketModal'));
@@ -79,12 +82,14 @@ async function router() {
             await fetchAndRenderTickets('running');
             break;
         case '#closed':
-            currentView = 'closed'; // Set view saat ini
+            currentView = 'closed';
             pageTitle.innerText = 'Tiket Closed';
             contentArea.innerHTML = createTicketTableHTML();
-            dateFilterContainer.style.display = 'flex'; 
+            dateFilterContainer.style.display = 'flex';
             if(exportBtn) exportBtn.style.display = 'block';
             await fetchAndRenderTickets('closed');
+            // Fetch semua tiket closed untuk pencarian global (tanpa limit)
+            fetchAllClosedTicketsForSearch();
             break;
         case '#stats':
             pageTitle.innerText = 'Statistik';
@@ -98,6 +103,27 @@ async function router() {
             break;
         default:
             window.location.hash = '#running';
+    }
+}
+
+async function fetchAllClosedTicketsForSearch() {
+    // Ambil semua tiket closed tanpa pagination untuk pencarian global
+    let url = `${API_URL_TICKETS}/closed?page=1&limit=10000`;
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    if (startDate && endDate) {
+        url += `&startDate=${startDate}&endDate=${endDate}`;
+    }
+    try {
+        const response = await fetch(url, { headers: authHeaders });
+        const data = await response.json();
+        if (data && Array.isArray(data.tickets)) {
+            allClosedTicketsCache = data.tickets;
+        } else {
+            allClosedTicketsCache = [];
+        }
+    } catch (e) {
+        allClosedTicketsCache = [];
     }
 }
 
@@ -287,14 +313,22 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
     const searchInput = document.getElementById('searchInput');
     let isFiltered = false;
 
-    if (currentCategoryFilter !== 'Semua') {
-        filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
+    // --- Penyesuaian untuk search global pada tiket closed ---
+    const isClosedTab = (currentView === 'closed');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    if (isClosedTab && searchTerm) {
+        // Gunakan cache semua tiket closed untuk pencarian global
+        filteredTickets = allClosedTicketsCache.filter(ticket =>
+            Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
+        );
         isFiltered = true;
-    }
-    if (searchInput) {
-        const searchTerm = searchInput.value.toLowerCase();
-        if (searchTerm) {
-            filteredTickets = filteredTickets.filter(ticket => 
+    } else {
+        if (currentCategoryFilter !== 'Semua') {
+            filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
+            isFiltered = true;
+        }
+        if (searchInput && searchTerm && !isClosedTab) {
+            filteredTickets = filteredTickets.filter(ticket =>
                 Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
             );
             isFiltered = true;
@@ -304,11 +338,9 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
     currentPage = page;
 
     if (isFiltered) {
-        // Pagination lokal
         renderTable(filteredTicketsCache, currentPage, false);
         renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
     } else {
-        // Pagination backend
         renderTable(filteredTicketsCache, currentPage, true);
         renderPagination(backendTotalPages, currentPage);
     }
