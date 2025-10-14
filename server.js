@@ -36,23 +36,17 @@ db.getConnection()
   });
 
 async function seedDatabase() {
-  const usersToSeed = [
-    { username: 'admin', password: 'password123', role: 'Admin' },
-    { username: 'user', password: 'password123', role: 'User' },
-    { username: 'view', password: 'password123', role: 'View' }
-  ];
-  for (const userData of usersToSeed) {
-    try {
-        const [rows] = await db.query("SELECT * FROM users WHERE username = ?", [userData.username]);
-        if (rows.length === 0) {
-            console.log(`Creating user: ${userData.username}`);
-            const hash = await bcrypt.hash(userData.password, 10);
-            await db.query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", [userData.username, hash, userData.role]);
-            console.log(`✅ User ${userData.username} created successfully.`);
-        }
-    } catch (err) {
-        console.error(`Error seeding user ${userData.username}:`, err);
+  const userData = { username: 'Admin', password: 'password123', role: 'Admin' };
+  try {
+    const [rows] = await db.query("SELECT * FROM users WHERE username = ?", [userData.username]);
+    if (rows.length === 0) {
+      console.log(`Creating user: ${userData.username}`);
+      const hash = await bcrypt.hash(userData.password, 10);
+      await db.query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", [userData.username, hash, userData.role]);
+      console.log(`✅ User ${userData.username} created successfully.`);
     }
+  } catch (err) {
+    console.error(`Error seeding user ${userData.username}:`, err);
   }
 }
 
