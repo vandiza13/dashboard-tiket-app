@@ -673,9 +673,11 @@ async function handleChangePassword(event) {
     }
 }
 
+// Perbaiki showHistory agar kompatibel dengan backend dan tampil di modal dengan benar
 async function showHistory(ticketId, displayId) {
-    const modalBody = document.getElementById('history-modal-body');
-    const modalTitle = document.getElementById('history-modal-title');
+    // Pastikan id elemen sesuai dengan modal di index.html
+    const modalBody = document.getElementById('historyModalBody');
+    const modalTitle = document.getElementById('historyModalTitle');
     modalTitle.innerText = `Riwayat Tiket: ${displayId}`;
     modalBody.innerHTML = `<p class="text-center">Memuat riwayat...</p>`;
     try {
@@ -688,11 +690,9 @@ async function showHistory(ticketId, displayId) {
             let html = '<ul class="list-group">';
             history.forEach(item => {
                 html += `<li class="list-group-item">
-                    <div><strong>Status:</strong> ${item.status || ''}</div>
-                    <div><strong>Update Progres:</strong> ${item.update_progres || ''}</div>
-                    <div><strong>Teknisi:</strong> ${item.technician_details || ''}</div>
-                    <div><strong>Updated By:</strong> ${item.updated_by || ''}</div>
-                    <div><small class="text-muted">${formatDateTime(item.updated_at)}</small></div>
+                    <div><strong>Waktu:</strong> ${formatDateTime(item.change_timestamp)}</div>
+                    <div><strong>Perubahan:</strong> ${item.change_details || '-'}</div>
+                    <div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div>
                 </li>`;
             });
             html += '</ul>';
