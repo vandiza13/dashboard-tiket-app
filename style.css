@@ -11,6 +11,10 @@ body {
 .wrapper {
   display: flex;
   align-items: flex-start;
+  min-height: 100vh;
+  /* pastikan wrapper tidak tertutup footer */
+  box-sizing: border-box;
+  padding-bottom: 60px;
 }
 
 /* Sidebar Styling */
@@ -25,6 +29,8 @@ body {
   top: 0;
   border-right: 1px solid #e5e7eb;
   z-index: 1020;
+  /* pastikan sidebar tidak menutupi footer */
+  min-height: 100vh;
 }
 
 #sidebar.collapsed {
@@ -39,6 +45,8 @@ body {
   min-width: 0;
   transition: margin-left 0.3s ease-in-out;
   margin-left: 0;
+  /* Tambahkan padding bawah agar tidak tertutup footer */
+  padding-bottom: 70px;
 }
 
 #sidebar.collapsed ~ #main-content,
@@ -208,10 +216,15 @@ body {
   }
   #main-content {
     margin-left: 0 !important;
+    padding-bottom: 70px;
     transition: none;
   }
-  #sidebar.show + #sidebar-overlay {
-    display: block;
+  footer {
+    position: static;
+    padding-bottom: 8px;
+  }
+  .wrapper {
+    padding-bottom: 0;
   }
 }
 
@@ -266,7 +279,21 @@ footer {
   font-size: 1rem;
   letter-spacing: 0.01em;
   border-top: 1px solid #e5e7eb;
+  width: 100%;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  text-align: center;
+  padding: 12px 0 8px 0;
 }
+
+footer a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
 footer a:hover {
   text-decoration: underline;
   color: #1d4ed8;
