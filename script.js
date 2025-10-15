@@ -56,10 +56,8 @@ window.addEventListener('hashchange', router);
 function toggleSidebar() {
     // Hanya untuk desktop, mobile handled by index.html
     if (window.innerWidth > 991) {
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('main-content');
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('sidebar-collapsed');
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('sidebar-collapsed');
     }
 }
 function applyRoles() { if (localStorage.getItem('userRole') === 'View') { document.getElementById('add-ticket-btn').style.display = 'none'; } }

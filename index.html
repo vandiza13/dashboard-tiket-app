@@ -18,7 +18,6 @@
     </script>
 
     <div class="wrapper">
-        <button class="btn btn-dark" id="sidebar-toggle" type="button"><i class="bi bi-list"></i></button>
         <nav id="sidebar" class="d-flex flex-column p-3">
             <div>
                 <h4 class="mb-4 text-center">Dashboard</h4>
@@ -40,6 +39,7 @@
         <div id="main-content">
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <div class="d-flex align-items-center">
+                    <button class="btn btn-dark me-3" id="sidebar-toggle"><i class="bi bi-list"></i></button>
                     <h1 id="page-title" class="h3 mb-0">Dashboard Monitoring Tiket MS & SQUAT</h1>
                 </div>
                 <div class="btn-group" id="main-actions">
@@ -90,44 +90,24 @@
                 sidebar.classList.add('show');
                 overlay.style.display = 'block';
             } else {
-                sidebar.classList.remove('collapsed');
-                document.getElementById('main-content').classList.remove('sidebar-collapsed');
+                sidebar.classList.toggle('collapsed');
+                document.getElementById('main-content').classList.toggle('sidebar-collapsed');
             }
         }
         function hideSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            if (isMobile()) {
-                sidebar.classList.remove('show');
-                overlay.style.display = 'none';
-            } else {
-                sidebar.classList.add('collapsed');
-                document.getElementById('main-content').classList.add('sidebar-collapsed');
-            }
+            sidebar.classList.remove('show');
+            overlay.style.display = 'none';
         }
         document.getElementById('sidebar-toggle').addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            if (isMobile()) {
-                if (sidebar.classList.contains('show')) {
-                    hideSidebar();
-                } else {
-                    showSidebar();
-                }
-            } else {
-                if (sidebar.classList.contains('collapsed')) {
-                    showSidebar();
-                } else {
-                    hideSidebar();
-                }
-            }
+            showSidebar();
         });
         // Hide sidebar on resize if not mobile
         window.addEventListener('resize', function() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
             if (!isMobile()) {
-                sidebar.classList.remove('show');
-                overlay.style.display = 'none';
+                document.getElementById('sidebar').classList.remove('show');
+                document.getElementById('sidebar-overlay').style.display = 'none';
             }
         });
         // Hide sidebar when clicking a menu (on mobile)
