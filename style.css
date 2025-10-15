@@ -19,16 +19,18 @@ body {
   height: 100vh;
   background-color: #111827;
   color: white;
-  transition: margin-left 0.3s ease-in-out;
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
   flex-shrink: 0;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   border-right: 1px solid #e5e7eb;
   z-index: 1020;
+  transform: translateX(0);
 }
 
 #sidebar.collapsed {
-  margin-left: -250px;
+  transform: translateX(-100%);
 }
 
 /* Konten Utama */
@@ -37,8 +39,8 @@ body {
   padding: 2rem;
   width: 100%;
   min-width: 0;
-  transition: margin-left 0.3s ease-in-out;
-  margin-left: 0;
+  margin-left: 250px;
+  transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
 }
 
 #sidebar.collapsed ~ #main-content,
@@ -182,6 +184,21 @@ body {
 #techniciansModal .table th:nth-child(5),
 #techniciansModal .table td:nth-child(5) { width: 15%; }
 
+/* Tombol toggle sidebar selalu di kiri atas */
+#sidebar-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1100;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Overlay untuk mobile sidebar */
 #sidebar-overlay {
   display: none;
@@ -191,17 +208,10 @@ body {
   background: rgba(0,0,0,0.2);
 }
 
-/* Responsive sidebar auto-hide */
 @media (max-width: 991.98px) {
   #sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    margin-left: 0;
-    transition: transform 0.3s;
     transform: translateX(-100%);
-    z-index: 1020;
+    margin-left: 0;
   }
   #sidebar.show {
     transform: translateX(0);
