@@ -62,6 +62,8 @@ function toggleSidebar() {
 }
 function applyRoles() { if (localStorage.getItem('userRole') === 'View') { document.getElementById('add-ticket-btn').style.display = 'none'; } }
 
+let statsTrendChart = null;
+
 async function router() {
     const hash = window.location.hash || '#running';
     const pageTitle = document.getElementById('page-title');
@@ -69,6 +71,8 @@ async function router() {
     const mainActions = document.getElementById('main-actions');
     const dateFilterContainer = document.getElementById('date-filter-container');
     const exportBtn = document.getElementById('export-btn');
+    const statsSummaryContainer = document.getElementById('stats-summary-container');
+    if (statsSummaryContainer) statsSummaryContainer.style.display = 'none';
 
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         link.classList.remove('active');
@@ -100,6 +104,7 @@ async function router() {
         case '#stats':
             pageTitle.innerText = 'Statistik';
             mainActions.style.display = 'none';
+            if (statsSummaryContainer) statsSummaryContainer.style.display = 'block';
             await fetchAndRenderStats();
             break;
         case '#profile':
@@ -202,30 +207,121 @@ async function fetchAndRenderProfile() {
 
 async function fetchAndRenderStats() {
     const contentArea = document.getElementById('content-area');
-    contentArea.innerHTML = `
+    const statsSummaryRow = document.getElementById('stats-summary-row');
+    const statsChartLoading = document.getElementById('stats-chart-loading');
+    contentArea.innerHTML = '';
+    if (statsSummaryRow) statsSummaryRow.innerHTML = '';
+    if (statsChartLoading) statsChartLoading.style.display = 'inline';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/stats?ts=${Date.now()}`, { headers: authHeaders });
+        if (!response.ok) throw new Error('Gagal mengambil data statistik');
+        const stats = await response.json();
+        if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth) {
+            throw new Error('Format data statistik tidak sesuai.');
+        }
+
+        // Ringkasan statistik atas
+        if (statsSummaryRow) {
+            statsSummaryRow.innerHTML = `
+                <div class="col-md-3 col-6">
+                    <div class="stats-summary-card bg-gradient-primary">
+                        <span class="icon"><i class="bi bi-lightning-charge"></i></span>
+                        <div>
+                            <div class="stat-value">${stats.runningDetails.total}</div>
+                            <div class="stat-label">Tiket Running</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stats-summary-card bg-gradient-success">
+                        <span class="icon"><i class="bi bi-check-circle"></i></span>
+                        <div>
+                            <div class="stat-value">${stats.closedTodayDetails.total}</div>
+                            <div class="stat-label">Closed Hari Ini</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mt-3 mt-md-0">
+                    <div class="stats-summary-card bg-gradient-info">
+                        <span class="icon"><i class="bi bi-calendar3"></i></span>
+                        <div>
+                            <div class="stat-value">${stats.closedThisMonth}</div>
+                            <div class="stat-label">Closed Bulan Ini</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mt-3 mt-md-0">
+                    <div class="stats-summary-card bg-gradient-secondary">
+                        <span class="icon"><i class="bi bi-bar-chart"></i></span>
+                        <div>
+                            <div class="stat-value">${stats.statusDistribution.reduce((a, b) => a + b.count, 0)}</div>
+                            <div class="stat-label">Total Tiket</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Grafik tren tiket closed 30 hari terakhir
+        if (typeof Chart !== "undefined" && document.getElementById('stats-trend-chart')) {
+            if (statsChartLoading) statsChartLoading.style.display = 'inline';
+            try {
+                const trendRes = await fetch(`${API_BASE_URL}/api/stats/closed-trend?days=30`, { headers: authHeaders });
+                const trendData = await trendRes.json();
+                const labels = trendData.map(item => item.date);
+                const data = trendData.map(item => item.count);
+
+                if (statsTrendChart) statsTrendChart.destroy();
+                statsTrendChart = new Chart(document.getElementById('stats-trend-chart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Closed',
+                            data,
+                            fill: true,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            tension: 0.3,
+                            pointRadius: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { display: true, title: { display: false } },
+                            y: { beginAtZero: true, ticks: { precision:0 } }
+                        }
+                    }
+                });
+            } catch (e) {
+                // fallback jika gagal fetch trend
+                if (statsTrendChart) statsTrendChart.destroy();
+            }
+            if (statsChartLoading) statsChartLoading.style.display = 'none';
+        }
+
+        // Sisa statistik detail (kategori, status, subkategori) tetap di contentArea
+        contentArea.innerHTML = `
         <div class="row">
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Tiket Sedang Berjalan (Running)</h5>
-                        <span class="badge bg-primary rounded-pill fs-5" id="total-running-stat">...</span>
+                        <h5 class="mb-0">Tiket Running per Sub-kategori</h5>
                     </div>
-                    <div class="card-body" id="running-details-body">
-                        <p class="text-muted mb-1">Rincian per Sub-kategori:</p>
-                        <div id="running-subcat-list"></div>
-                    </div>
+                    <div class="card-body" id="running-subcat-list"></div>
                 </div>
             </div>
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Tiket Selesai Hari Ini</h5>
-                        <span class="badge bg-success rounded-pill fs-5" id="total-closed-today-stat">...</span>
+                        <h5 class="mb-0">Tiket Closed Hari Ini per Sub-kategori</h5>
                     </div>
-                    <div class="card-body" id="closed-today-details-body">
-                        <p class="text-muted mb-1">Rincian per Sub-kategori:</p>
-                        <div id="closed-today-subcat-list"></div>
-                    </div>
+                    <div class="card-body" id="closed-today-subcat-list"></div>
                 </div>
             </div>
         </div>
@@ -247,31 +343,7 @@ async function fetchAndRenderStats() {
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-lg-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">Tiket Closed Bulan Ini</h5>
-                    </div>
-                    <div class="card-body" id="closed-this-month-body">
-                        <span class="badge bg-info rounded-pill fs-5" id="total-closed-this-month">...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/stats?ts=${Date.now()}`, { headers: authHeaders });
-        if (!response.ok) throw new Error('Gagal mengambil data statistik');
-        const stats = await response.json();
-        if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth) {
-            throw new Error('Format data statistik tidak sesuai.');
-        }
-
-        // Total
-        document.getElementById('total-running-stat').innerText = stats.runningDetails.total;
-        document.getElementById('total-closed-today-stat').innerText = stats.closedTodayDetails.total;
-        document.getElementById('total-closed-this-month').innerText = stats.closedThisMonth;
+        `;
 
         // Rincian subkategori running
         const runningListDiv = document.getElementById('running-subcat-list');
@@ -338,6 +410,8 @@ async function fetchAndRenderStats() {
         }
     } catch(error) {
         contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
+        const statsChartLoading = document.getElementById('stats-chart-loading');
+        if (statsChartLoading) statsChartLoading.style.display = 'none';
     }
 }
 
