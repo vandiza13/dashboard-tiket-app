@@ -14,7 +14,6 @@ body {
   min-height: 100vh;
   /* pastikan wrapper tidak tertutup footer */
   box-sizing: border-box;
-  padding-bottom: 60px;
 }
 
 /* Sidebar Styling */
@@ -23,18 +22,32 @@ body {
   height: 100vh;
   background-color: #111827;
   color: white;
-  transition: margin-left 0.3s ease-in-out;
+  transition: margin-left 0.3s ease-in-out, transform 0.3s;
   flex-shrink: 0;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   border-right: 1px solid #e5e7eb;
   z-index: 1020;
+  margin-left: 0;
   /* pastikan sidebar tidak menutupi footer */
-  min-height: 100vh;
+  bottom: 0;
 }
 
 #sidebar.collapsed {
   margin-left: -250px;
+}
+
+@media (max-width: 991.98px) {
+  #sidebar {
+    transform: translateX(-100%);
+    margin-left: 0;
+    position: fixed;
+    z-index: 1020;
+  }
+  #sidebar.show {
+    transform: translateX(0);
+  }
 }
 
 /* Konten Utama */
@@ -44,9 +57,8 @@ body {
   width: 100%;
   min-width: 0;
   transition: margin-left 0.3s ease-in-out;
-  margin-left: 0;
-  /* Tambahkan padding bawah agar tidak tertutup footer */
-  padding-bottom: 70px;
+  margin-left: 250px;
+  padding-bottom: 32px;
 }
 
 #sidebar.collapsed ~ #main-content,
@@ -54,27 +66,19 @@ body {
   margin-left: 0 !important;
 }
 
-@media (min-width: 768px) {
-  .wrapper #main-content {
-    margin-left: 0;
-  }
-  #sidebar:not(.collapsed) ~ #main-content {
-    margin-left: 0;
-  }
-  #sidebar.collapsed ~ #main-content,
-  .wrapper #main-content.sidebar-collapsed {
-    margin-left: 0;
+@media (max-width: 991.98px) {
+  #main-content {
+    margin-left: 0 !important;
+    padding-bottom: 32px;
   }
 }
 
-/* Untuk efek geser konten saat sidebar hide */
-@media (min-width: 768px) {
-  #sidebar:not(.collapsed) ~ #main-content {
-    margin-left: 0;
-  }
-  #sidebar ~ #main-content {
-    transition: margin-left 0.3s;
-  }
+/* Wrapper agar sidebar dan konten tidak overlap footer */
+.wrapper {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* Card Styling */
@@ -216,7 +220,7 @@ body {
   }
   #main-content {
     margin-left: 0 !important;
-    padding-bottom: 70px;
+    padding-bottom: 32px;
     transition: none;
   }
   footer {
@@ -280,12 +284,11 @@ footer {
   letter-spacing: 0.01em;
   border-top: 1px solid #e5e7eb;
   width: 100%;
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  z-index: 100;
   text-align: center;
   padding: 12px 0 8px 0;
+  margin-top: auto;
+  position: relative;
+  z-index: 1;
 }
 
 footer a {
