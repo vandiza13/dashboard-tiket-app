@@ -259,3 +259,15 @@ body {
     margin-bottom: 0.5rem;
   }
 }
+
+footer {
+  background: #f4f7f6;
+  color: #2563eb;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  border-top: 1px solid #e5e7eb;
+}
+footer a:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
