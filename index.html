@@ -82,6 +82,8 @@
         // Sidebar toggle logic
         document.getElementById('sidebar-toggle').addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('collapsed');
+            // Toggle class pada main-content agar ikut bergeser
+            document.getElementById('main-content').classList.toggle('sidebar-collapsed');
         });
 
         // Highlight active menu
