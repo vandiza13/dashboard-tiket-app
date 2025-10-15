@@ -35,7 +35,7 @@
                 </ul>
             </div>
         </nav>
-
+        <div id="sidebar-overlay" onclick="hideSidebar()"></div>
         <div id="main-content">
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <div class="d-flex align-items-center">
@@ -80,10 +80,41 @@
     <script src="script.js"></script>
     <script>
         // Sidebar toggle logic
+        function isMobile() {
+            return window.innerWidth <= 991;
+        }
+        function showSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (isMobile()) {
+                sidebar.classList.add('show');
+                overlay.style.display = 'block';
+            } else {
+                sidebar.classList.toggle('collapsed');
+                document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+            }
+        }
+        function hideSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('show');
+            overlay.style.display = 'none';
+        }
         document.getElementById('sidebar-toggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-            // Toggle class pada main-content agar ikut bergeser
-            document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+            showSidebar();
+        });
+        // Hide sidebar on resize if not mobile
+        window.addEventListener('resize', function() {
+            if (!isMobile()) {
+                document.getElementById('sidebar').classList.remove('show');
+                document.getElementById('sidebar-overlay').style.display = 'none';
+            }
+        });
+        // Hide sidebar when clicking a menu (on mobile)
+        document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', function() {
+                if (isMobile()) hideSidebar();
+            });
         });
 
         // Highlight active menu

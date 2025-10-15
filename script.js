@@ -53,9 +53,12 @@ window.addEventListener('hashchange', router);
 
 // --- FUNGSI UTAMA & NAVIGASI ---
 
-function toggleSidebar() { 
-    document.getElementById('sidebar').classList.toggle('collapsed'); 
-    document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+function toggleSidebar() {
+    // Hanya untuk desktop, mobile handled by index.html
+    if (window.innerWidth > 991) {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+    }
 }
 function applyRoles() { if (localStorage.getItem('userRole') === 'View') { document.getElementById('add-ticket-btn').style.display = 'none'; } }
 

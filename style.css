@@ -181,3 +181,36 @@ body {
 
 #techniciansModal .table th:nth-child(5),
 #techniciansModal .table td:nth-child(5) { width: 15%; }
+
+/* Overlay untuk mobile sidebar */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  z-index: 1010;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.2);
+}
+
+/* Responsive sidebar auto-hide */
+@media (max-width: 991.98px) {
+  #sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    margin-left: 0;
+    transition: transform 0.3s;
+    transform: translateX(-100%);
+    z-index: 1020;
+  }
+  #sidebar.show {
+    transform: translateX(0);
+  }
+  #main-content {
+    margin-left: 0 !important;
+    transition: none;
+  }
+  #sidebar.show + #sidebar-overlay {
+    display: block;
+  }
+}
