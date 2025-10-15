@@ -22,15 +22,15 @@
             <div>
                 <h4 class="mb-4 text-center">Dashboard</h4>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="#running"><i class="bi bi-person-workspace"></i> <span>Tiket Running</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#closed"><i class="bi bi-check2-circle"></i> <span>Tiket Closed</span></a></li>
-                    <li class="nav-item"><a class="nav-link" href="#stats"><i class="bi bi-bar-chart-line"></i> <span>Statistik</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#running" id="nav-running"><i class="bi bi-person-workspace"></i> <span>Tiket Running</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#closed" id="nav-closed"><i class="bi bi-check2-circle"></i> <span>Tiket Closed</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#stats" id="nav-stats"><i class="bi bi-bar-chart-line"></i> <span>Statistik</span></a></li>
                 </ul>
             </div>
             <div class="mt-auto">
                 <hr class="text-secondary">
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="#profile"><i class="bi bi-person-circle"></i> <span>Profil</span></a></li>
+                    <li class="nav-item"><a class="nav-link" href="#profile" id="nav-profile"><i class="bi bi-person-circle"></i> <span>Profil</span></a></li>
                     <li class="nav-item"><a class="nav-link" href="#" onclick="logout()"><i class="bi bi-box-arrow-left"></i> <span>Logout</span></a></li>
                 </ul>
             </div>
@@ -78,5 +78,23 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Sidebar toggle logic
+        document.getElementById('sidebar-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        });
+
+        // Highlight active menu
+        function setActiveNav() {
+            const hash = window.location.hash || '#running';
+            document.querySelectorAll('#sidebar .nav-link').forEach(link => link.classList.remove('active'));
+            if (hash.startsWith('#running')) document.getElementById('nav-running').classList.add('active');
+            else if (hash.startsWith('#closed')) document.getElementById('nav-closed').classList.add('active');
+            else if (hash.startsWith('#stats')) document.getElementById('nav-stats').classList.add('active');
+            else if (hash.startsWith('#profile')) document.getElementById('nav-profile').classList.add('active');
+        }
+        window.addEventListener('hashchange', setActiveNav);
+        window.addEventListener('DOMContentLoaded', setActiveNav);
+    </script>
 </body>
 </html>
