@@ -269,6 +269,7 @@ async function fetchAndRenderStats() {
             try {
                 const trendRes = await fetch(`${API_BASE_URL}/api/stats/closed-trend?days=30`, { headers: authHeaders });
                 const trendData = await trendRes.json();
+                // Pastikan data valid dan urut tanggal
                 const labels = trendData.map(item => item.date);
                 const data = trendData.map(item => item.count);
 
@@ -281,30 +282,48 @@ async function fetchAndRenderStats() {
                     document.getElementById('stats-trend-chart').style.display = 'block';
                     document.getElementById('stats-chart-loading').innerText = '';
                     statsTrendChart = new Chart(document.getElementById('stats-trend-chart').getContext('2d'), {
-                            type: 'line',
-                            data: {
-                                labels,
-                                datasets: [{
-                                    label: 'Closed',
-                                    data,
-                                    fill: true,
-                                    borderColor: '#2563eb',
-                                    backgroundColor: 'rgba(59,130,246,0.08)',
-                                    tension: 0.3,
-                                    pointRadius: 2,
-                                }]
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: 'Closed',
+                                data,
+                                fill: true,
+                                borderColor: '#2563eb',
+                                backgroundColor: 'rgba(59,130,246,0.08)',
+                                tension: 0.3,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#2563eb'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Closed: ${context.parsed.y}`;
+                                        }
+                                    }
+                                }
                             },
-                            options: {
-                                responsive: true,
-                                plugins: {
-                                    legend: { display: false }
+                            scales: {
+                                x: {
+                                    display: true,
+                                    title: { display: false },
+                                    ticks: {
+                                        maxTicksLimit: 10,
+                                        autoSkip: true
+                                    }
                                 },
-                                scales: {
-                                    x: { display: true, title: { display: false } },
-                                    y: { beginAtZero: true, ticks: { precision:0 } }
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { precision:0 }
                                 }
                             }
-                        });
+                        }
+                    });
                 }
             } catch (e) {
                 if (statsTrendChart) statsTrendChart.destroy();
