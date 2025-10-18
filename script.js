@@ -242,7 +242,7 @@ async function fetchAndRenderStats() {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6 mt-3 mt-md-0">
+                <div class="col-md-3 col-6">
                     <div class="stats-summary-card bg-gradient-info">
                         <span class="icon"><i class="bi bi-calendar3"></i></span>
                         <div>
@@ -251,7 +251,7 @@ async function fetchAndRenderStats() {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6 mt-3 mt-md-0">
+                <div class="col-md-3 col-6">
                     <div class="stats-summary-card bg-gradient-secondary">
                         <span class="icon"><i class="bi bi-bar-chart"></i></span>
                         <div>
@@ -273,34 +273,43 @@ async function fetchAndRenderStats() {
                 const data = trendData.map(item => item.count);
 
                 if (statsTrendChart) statsTrendChart.destroy();
-                statsTrendChart = new Chart(document.getElementById('stats-trend-chart').getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels,
-                        datasets: [{
-                            label: 'Closed',
-                            data,
-                            fill: true,
-                            borderColor: '#2563eb',
-                            backgroundColor: 'rgba(59,130,246,0.08)',
-                            tension: 0.3,
-                            pointRadius: 2,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            x: { display: true, title: { display: false } },
-                            y: { beginAtZero: true, ticks: { precision:0 } }
-                        }
-                    }
-                });
+
+                if (labels.length === 0) {
+                    document.getElementById('stats-trend-chart').style.display = 'none';
+                    document.getElementById('stats-chart-loading').innerText = 'Tidak ada data grafik';
+                } else {
+                    document.getElementById('stats-trend-chart').style.display = 'block';
+                    document.getElementById('stats-chart-loading').innerText = '';
+                    statsTrendChart = new Chart(document.getElementById('stats-trend-chart').getContext('2d'), {
+                            type: 'line',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Closed',
+                                    data,
+                                    fill: true,
+                                    borderColor: '#2563eb',
+                                    backgroundColor: 'rgba(59,130,246,0.08)',
+                                    tension: 0.3,
+                                    pointRadius: 2,
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    x: { display: true, title: { display: false } },
+                                    y: { beginAtZero: true, ticks: { precision:0 } }
+                                }
+                            }
+                        });
+                }
             } catch (e) {
-                // fallback jika gagal fetch trend
                 if (statsTrendChart) statsTrendChart.destroy();
+                document.getElementById('stats-trend-chart').style.display = 'none';
+                document.getElementById('stats-chart-loading').innerText = 'Gagal memuat grafik';
             }
             if (statsChartLoading) statsChartLoading.style.display = 'none';
         }
@@ -311,7 +320,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Tiket Running per Sub-kategori</span>
+                        <span class="stats-section-title">Tiket Running</span>
                     </div>
                     <div class="card-body" id="running-subcat-list"></div>
                 </div>
@@ -319,7 +328,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Closed Hari Ini per Sub-kategori</span>
+                        <span class="stats-section-title">Closed Hari Ini</span>
                     </div>
                     <div class="card-body" id="closed-today-subcat-list"></div>
                 </div>

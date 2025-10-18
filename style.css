@@ -261,19 +261,54 @@ body {
   margin-bottom: 0;
 }
 
+/* Statistik summary row agar sejajar */
+#stats-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+#stats-summary-row > .col-md-3,
+#stats-summary-row > .col-6 {
+  flex: 1 1 0;
+  min-width: 200px;
+  max-width: 100%;
+  display: flex;
+  /* Hapus margin-top agar card rata */
+  margin-top: 0 !important;
+}
+
+.stats-summary-card {
+  width: 100%;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 0;
+}
+
+/* Responsive fix for summary card */
+@media (max-width: 991.98px) {
+  #stats-summary-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  #stats-summary-row > .col-md-3,
+  #stats-summary-row > .col-6 {
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 100%;
+    margin-bottom: 0;
+  }
+}
+
 /* Statistik chart card */
 #stats-trend-chart {
   width: 100% !important;
+  min-height: 260px !important;
   max-width: 100%;
-}
-.stats-chart-card .card-header {
-  background: #f4f7f6;
-  border-bottom: 1px solid #e5e7eb;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-.stats-chart-card .card-body {
-  padding: 1.5rem 1rem 1rem 1rem;
+  display: block;
 }
 
 /* Statistik judul section */
