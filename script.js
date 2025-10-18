@@ -310,16 +310,16 @@ async function fetchAndRenderStats() {
         <div class="row">
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Tiket Running</h5>
+                    <div class="card-header bg-white border-bottom-0">
+                        <span class="stats-section-title">Tiket Running per Sub-kategori</span>
                     </div>
                     <div class="card-body" id="running-subcat-list"></div>
                 </div>
             </div>
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Detail Tiket Closed Hari Ini</h5>
+                    <div class="card-header bg-white border-bottom-0">
+                        <span class="stats-section-title">Closed Hari Ini per Sub-kategori</span>
                     </div>
                     <div class="card-body" id="closed-today-subcat-list"></div>
                 </div>
@@ -328,16 +328,16 @@ async function fetchAndRenderStats() {
         <div class="row">
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">Distribusi Status Tiket</h5>
+                    <div class="card-header bg-white border-bottom-0">
+                        <span class="stats-section-title">Distribusi Status Tiket</span>
                     </div>
                     <div class="card-body" id="status-distribution-body"></div>
                 </div>
             </div>
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">Distribusi Kategori Tiket</h5>
+                    <div class="card-header bg-white border-bottom-0">
+                        <span class="stats-section-title">Distribusi Kategori Tiket</span>
                     </div>
                     <div class="card-body" id="category-distribution-body"></div>
                 </div>
