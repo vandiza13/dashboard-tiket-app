@@ -311,7 +311,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Tiket Running per Sub-kategori</h5>
+                        <h5 class="mb-0">Tiket Running</h5>
                     </div>
                     <div class="card-body" id="running-subcat-list"></div>
                 </div>
@@ -319,7 +319,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Tiket Closed Hari Ini per Sub-kategori</h5>
+                        <h5 class="mb-0">Detail Tiket Closed Hari Ini</h5>
                     </div>
                     <div class="card-body" id="closed-today-subcat-list"></div>
                 </div>
