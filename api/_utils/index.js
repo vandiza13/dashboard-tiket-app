@@ -53,24 +53,24 @@ const restrictTo = (...roles) => {
 // Ini sudah benar, JANGAN ubah rute Anda.
 
 app.get('/', (req, res) => res.json({ message: "Server is running!", version: "Final Vercel Monolith" }));
-app.post('/api/register', async (req, res) => { /* ... kode Anda ... */ });
-app.post('/api/login', async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/profile', protect, async (req, res) => { /* ... kode Anda ... */ });
-app.put('/api/profile/change-password', protect, async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/tickets/closed/export', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
-app.post('/api/tickets', protect, restrictTo('Admin', 'User'), async (req, res) => { /* ... kode Anda ... */ });
-app.put('/api/tickets/:id', protect, restrictTo('Admin', 'User'), async (req, res) => { /* ... kode Anda ... */ });
-app.delete('/api/tickets/:id', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/tickets/:id/history', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/technicians', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
-app.get('/api/technicians/active', protect, restrictTo('Admin', 'User'), async (req, res) => { /* ... kode Anda ... */ });
-app.post('/api/technicians', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
-app.put('/api/technicians/:nik', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
-app.put('/api/technicians/status/:nik', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
-app.delete('/api/technicians/:nik', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
+app.post('/register', async (req, res) => { /* ... kode Anda ... */ });
+app.post('/login', async (req, res) => { /* ... kode Anda ... */ });
+app.get('/profile', protect, async (req, res) => { /* ... kode Anda ... */ });
+app.put('/profile/change-password', protect, async (req, res) => { /* ... kode Anda ... */ });
+app.get('/stats', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
+app.get('/tickets/running', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
+app.get('/tickets/closed', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
+app.get('/tickets/closed/export', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
+app.post('/tickets', protect, restrictTo('Admin', 'User'), async (req, res) => { /* ... kode Anda ... */ });
+app.put('/tickets/:id', protect, restrictTo('Admin', 'User'), async (req, res) => { /* ... kode Anda ... */ });
+app.delete('/tickets/:id', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
+app.get('/tickets/:id/history', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
+app.get('/technicians', protect, restrictTo('Admin', 'User', 'View'), async (req, res) => { /* ... kode Anda ... */ });
+app.get('/technicians/active', protect, restrictTo('Admin', 'User'), async (req, res) => { /* ... kode Anda ... */ });
+app.post('/technicians', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
+app.put('/technicians/:nik', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
+app.put('/technicians/status/:nik', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
+app.delete('/technicians/:nik', protect, restrictTo('Admin'), async (req, res) => { /* ... kode Anda ... */ });
 
 
 // --- PERUBAHAN 2: HAPUS app.listen ---
