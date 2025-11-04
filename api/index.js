@@ -210,7 +210,7 @@ app.get('/api/tickets/running', async (req, res) => {
       query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id, u.username ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     const [totalResult] = await db.query("SELECT COUNT(*) as total FROM tickets WHERE status IN ('OPEN', 'SC')");
@@ -252,7 +252,7 @@ app.get('/api/tickets/closed', async (req, res) => {
       query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id, u.username ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     
