@@ -325,12 +325,12 @@ app.post('/api/tickets', async (req, res) => {
     if (!category || !subcategory || !id_tiket || !tiket_time || !deskripsi) {
       return res.status(400).json({ error: 'Semua field harus diisi' });
     }
-
+    const lastUpdateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
     const [result] = await db.query(
-      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId]
+      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId, lastUpdateTime]
     );
-
+    
     await db.query(
       'INSERT INTO ticket_history (ticket_id, change_details, changed_by) VALUES (?, ?, ?)',
       [result.insertId, `Tiket dibuat dengan status OPEN`, user.username]
