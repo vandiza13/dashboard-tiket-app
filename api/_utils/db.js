@@ -1,9 +1,6 @@
-// /api/_utils/db.js
-
 const mysql = require('mysql2/promise');
 
-// Buat pool koneksi.
-// Ini akan menggunakan environment variables yang akan kita set di Vercel
+// Buat pool koneksi sekali saja
 const db = mysql.createPool({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
@@ -11,13 +8,16 @@ const db = mysql.createPool({
   database: process.env.MYSQLDATABASE,
   port: process.env.MYSQLPORT || 3306,
   timezone: '+07:00',
+  
+  // --- TAMBAHAN PENTING UNTUK TiDB CLOUD ---
   ssl: {
-    // Diperlukan untuk TiDB Cloud
     minVersion: 'TLSv1.2',
     rejectUnauthorized: true 
   },
+  // -----------------------------------------
+
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 5, // 5 sudah cukup untuk serverless
   queueLimit: 0
 });
 
