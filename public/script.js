@@ -876,8 +876,21 @@ function logout() {
 }
 
 function formatDateTime(s) {
-    if (!s) return '';
-    return new Date(s).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', hour12: false });
+  if (!s) return '';
+  const date = new Date(s);
+  if (isNaN(date.getTime())) return s;
+  const options = {
+    timeZone: 'Asia/Jakarta', // WIB timezone
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  
+  return new Intl.DateTimeFormat('id-ID', options).format(date);
 }
 
 function getStatusBadge(s) {

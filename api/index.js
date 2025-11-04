@@ -210,7 +210,7 @@ app.get('/api/tickets/running', async (req, res) => {
       query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-      query += ` GROUP BY t.id, u.username ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     const [totalResult] = await db.query("SELECT COUNT(*) as total FROM tickets WHERE status IN ('OPEN', 'SC')");
@@ -252,7 +252,7 @@ app.get('/api/tickets/closed', async (req, res) => {
       query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id, u.username ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;;
+    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     
@@ -356,14 +356,11 @@ app.put('/api/tickets/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tiket tidak ditemukan' });
     }
 
-    const lastUpdateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
+    // Gunakan CONVERT_TZ untuk set timezone ke WIB (UTC+7)
     await db.query(
-      'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = ? WHERE id = ?',
-      [category, subcategory, status, update_progres, user.userId, lastUpdateTime, id]
-      );
-    
-  
+      'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = CONVERT_TZ(NOW(), "+00:00", "+07:00") WHERE id = ?',
+      [category, subcategory, status, update_progres, user.userId, id]
+    );
 
     await db.query('DELETE FROM ticket_technicians WHERE ticket_id = ?', [id]);
     
