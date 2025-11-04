@@ -356,10 +356,14 @@ app.put('/api/tickets/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tiket tidak ditemukan' });
     }
 
+    const lastUpdateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
     await db.query(
-      'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = NOW() WHERE id = ?',
-      [category, subcategory, status, update_progres, user.userId, id]
-    );
+      'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = ? WHERE id = ?',
+      [category, subcategory, status, update_progres, user.userId, lastUpdateTime, id]
+      );
+    
+  
 
     await db.query('DELETE FROM ticket_technicians WHERE ticket_id = ?', [id]);
     
