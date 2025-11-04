@@ -1,7 +1,6 @@
 // Konstanta dan Variabel Global
-const API_BASE_URL = 'https://dashboard-tiket-app-production-8656.up.railway.app'; // PASTIKAN URL INI BENAR
-const API_URL_TICKETS = `${API_BASE_URL}/api/tickets`;
-const API_URL_TECHNICIANS = `${API_BASE_URL}/api/technicians`;
+const API_URL_TICKETS = `/api/tickets`;
+const API_URL_TECHNICIANS = `/api/technicians`;
 
 let addTicketModal, updateTicketModal, reportModal, techniciansModal, editTechnicianModal, historyModal;
 let ticketsCache = [], activeTechniciansCache = [];
@@ -197,7 +196,7 @@ async function fetchAndRenderProfile() {
     const contentArea = document.getElementById('content-area');
     contentArea.innerHTML = `<p>Memuat data profil...</p>`;
     try {
-        const response = await fetch(`${API_BASE_URL}/api/profile`, { headers: authHeaders });
+        const response = await fetch(`/api/profile`, { headers: authHeaders });
         if (response.status === 401 || response.status === 403) { logout(); return; }
         const user = await response.json();
         contentArea.innerHTML = `<div class="row"><div class="col-md-6"><div class="card"><div class="card-header">Detail Akun</div><div class="card-body"><p><strong>Username:</strong> ${user.username}</p><p><strong>Peran (Role):</strong> ${user.role}</p><p><strong>Tanggal Bergabung:</strong> ${formatDateTime(user.created_at)}</p></div></div></div><div class="col-md-6 mt-3 mt-md-0"><div class="card"><div class="card-header">Ganti Password</div><div class="card-body"><form id="changePasswordForm"><div class="mb-3"><label for="currentPassword" class="form-label">Password Saat Ini</label><input type="password" class="form-control" id="currentPassword" required></div><div class="mb-3"><label for="newPassword" class="form-label">Password Baru</label><input type="password" class="form-control" id="newPassword" required></div><div class="mb-3"><label for="confirmPassword" class="form-label">Konfirmasi Password Baru</label><input type="password" class="form-control" id="confirmPassword" required></div><button type="submit" class="btn btn-primary">Simpan Password</button></form><div id="password-message" class="mt-3"></div></div></div></div></div>`;
@@ -214,7 +213,7 @@ async function fetchAndRenderStats() {
     if (statsChartLoading) statsChartLoading.style.display = 'inline';
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/stats?ts=${Date.now()}`, { headers: authHeaders });
+        const response = await fetch(`/api/stats?ts=${Date.now()}`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
         if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth) {
@@ -267,7 +266,7 @@ async function fetchAndRenderStats() {
         if (typeof Chart !== "undefined" && document.getElementById('stats-trend-chart')) {
             if (statsChartLoading) statsChartLoading.style.display = 'inline';
             try {
-                const trendRes = await fetch(`${API_BASE_URL}/api/stats/closed-trend?days=30`, { headers: authHeaders });
+                const trendRes = await fetch(`/api/stats/closed-trend?days=30`, { headers: authHeaders });
                 const trendData = await trendRes.json();
                 // Pastikan data valid dan urut tanggal
                 const labels = trendData.map(item => item.date);
@@ -771,7 +770,7 @@ async function handleChangePassword(event) {
         return;
     }
     try {
-        const response = await fetch(`${API_BASE_URL}/api/profile/change-password`, { method: 'PUT', headers: authHeaders, body: JSON.stringify({ currentPassword, newPassword }) });
+        const response = await fetch(`/api/profile/change-password`, { method: 'PUT', headers: authHeaders, body: JSON.stringify({ currentPassword, newPassword }) });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error);
         messageDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
