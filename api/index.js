@@ -280,7 +280,7 @@ app.get('/api/tickets/closed/export', async (req, res) => {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    let query = `
+    let baseQuery = `
       SELECT 
         t.id, 
         t.id_tiket, 
@@ -289,27 +289,50 @@ app.get('/api/tickets/closed/export', async (req, res) => {
         t.tiket_time, 
         t.deskripsi, 
         t.status,
-        GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
         t.update_progres, 
-        t.last_update_time, 
-        MAX(u.username) as updated_by
+        t.last_update_time,
+        t.updated_by_user_id
       FROM tickets t
-      LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
-      LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
-      LEFT JOIN users u ON t.updated_by_user_id = u.id
       WHERE t.status = 'CLOSED'
     `;
 
+    const params = [];
     if (req.query.startDate && req.query.endDate) {
-      query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
+      baseQuery += ` AND DATE(t.last_update_time) BETWEEN ? AND ?`;
+      params.push(req.query.startDate, req.query.endDate);
     }
 
-    query += ` GROUP BY t.id, t.id_tiket, t.category, t.subcategory, t.tiket_time, t.deskripsi, t.status, t.update_progres, t.last_update_time ORDER BY t.last_update_time DESC`;
+    baseQuery += ` ORDER BY t.last_update_time DESC`;
 
-    const [tickets] = await db.query(query);
+    const [tickets] = await db.query(baseQuery, params);
 
     if (tickets.length === 0) {
       return res.status(404).json({ error: 'Tidak ada data untuk diekspor' });
+    }
+
+    // Get technicians dan username untuk setiap ticket
+    for (let ticket of tickets) {
+      // Get teknisi names
+      const [techs] = await db.query(`
+        SELECT tech.name
+        FROM ticket_technicians tt
+        JOIN technicians tech ON tt.technician_nik = tech.nik
+        WHERE tt.ticket_id = ?
+        ORDER BY tech.name
+      `, [ticket.id]);
+      
+      ticket.technician_details = techs.map(t => t.name).join(', ');
+
+      // Get username
+      if (ticket.updated_by_user_id) {
+        const [userRows] = await db.query('SELECT username FROM users WHERE id = ?', [ticket.updated_by_user_id]);
+        ticket.updated_by = userRows.length > 0 ? userRows[0].username : null;
+      } else {
+        ticket.updated_by = null;
+      }
+      
+      // Remove updated_by_user_id sebelum export
+      delete ticket.updated_by_user_id;
     }
 
     const fields = ['id', 'id_tiket', 'category', 'subcategory', 'tiket_time', 'deskripsi', 'status', 'technician_details', 'update_progres', 'last_update_time', 'updated_by'];
