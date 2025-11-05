@@ -210,7 +210,7 @@ app.get('/api/tickets/running', async (req, res) => {
       query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id, u.username ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     const [totalResult] = await db.query("SELECT COUNT(*) as total FROM tickets WHERE status IN ('OPEN', 'SC')");
@@ -252,7 +252,7 @@ app.get('/api/tickets/closed', async (req, res) => {
       query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id, u.username ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     
@@ -325,12 +325,13 @@ app.post('/api/tickets', async (req, res) => {
     if (!category || !subcategory || !id_tiket || !tiket_time || !deskripsi) {
       return res.status(400).json({ error: 'Semua field harus diisi' });
     }
-    const lastUpdateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    // Gunakan CONVERT_TZ untuk waktu yang konsisten
     const [result] = await db.query(
-      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId, lastUpdateTime]
+      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CONVERT_TZ(NOW(), "+00:00", "+07:00"))',
+      [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId]
     );
-    
+
     await db.query(
       'INSERT INTO ticket_history (ticket_id, change_details, changed_by) VALUES (?, ?, ?)',
       [result.insertId, `Tiket dibuat dengan status OPEN`, user.username]
