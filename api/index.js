@@ -281,9 +281,18 @@ app.get('/api/tickets/closed/export', async (req, res) => {
     restrictTo(user, ['Admin', 'User', 'View']);
 
     let query = `
-      SELECT t.id, t.id_tiket, t.category, t.subcategory, t.tiket_time, t.deskripsi, t.status,
-      GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
-      t.update_progres, t.last_update_time, u.username as updated_by
+      SELECT 
+        t.id, 
+        t.id_tiket, 
+        t.category, 
+        t.subcategory, 
+        t.tiket_time, 
+        t.deskripsi, 
+        t.status,
+        GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
+        t.update_progres, 
+        t.last_update_time, 
+        MAX(u.username) as updated_by
       FROM tickets t
       LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
       LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
@@ -295,7 +304,7 @@ app.get('/api/tickets/closed/export', async (req, res) => {
       query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC`;
+    query += ` GROUP BY t.id, t.id_tiket, t.category, t.subcategory, t.tiket_time, t.deskripsi, t.status, t.update_progres, t.last_update_time ORDER BY t.last_update_time DESC`;
 
     const [tickets] = await db.query(query);
 
