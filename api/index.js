@@ -198,7 +198,7 @@ app.get('/api/tickets/running', async (req, res) => {
     let query = `
       SELECT t.*, 
       GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
-      u.username as updated_by
+      ANY_VALUE(u.username) as updated_by
       FROM tickets t
       LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
       LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
@@ -240,7 +240,7 @@ app.get('/api/tickets/closed', async (req, res) => {
     let query = `
       SELECT t.*, 
       GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
-      u.username as updated_by
+      ANY_VALUE(u.username) as updated_by
       FROM tickets t
       LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
       LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
