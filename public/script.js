@@ -767,9 +767,10 @@ function openUpdateModal(ticket) {
     techCheckboxes.innerHTML = '';
     const assignedTechnicianNiks = ticket.teknisi ? ticket.teknisi.split(',') : [];
     activeTechniciansCache.forEach(tech => {
-        const isChecked = assignedTechnicianNiks.includes(tech.nik);
-        techCheckboxes.innerHTML += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${tech.nik}" id="tech_update_${tech.nik}" ${isChecked ? 'checked' : ''}><label class="form-check-label" for="tech_update_${tech.nik}">${tech.name}</label></div>`;
-    });
+    const isChecked = assignedTechnicianNiks.includes(tech.nik);
+    const displayText = `${tech.name} (${tech.phone_number || 'No HP'})`;
+    techCheckboxes.innerHTML += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${tech.nik}" id="tech_update_${tech.nik}" ${isChecked ? 'checked' : ''}><label class="form-check-label" for="tech_update_${tech.nik}">${displayText}</label></div>`;
+});
     updateTicketModal.show();
 }
 

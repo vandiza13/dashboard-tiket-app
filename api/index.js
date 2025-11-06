@@ -196,15 +196,15 @@ app.get('/api/tickets/running', async (req, res) => {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT t.*, 
-      GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
-      ANY_VALUE(u.username) as updated_by
-      FROM tickets t
-      LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
-      LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
-      LEFT JOIN users u ON t.updated_by_user_id = u.id
-      WHERE t.status IN ('OPEN', 'SC')
-    `;
+  SELECT t.*, 
+  GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
+  ANY_VALUE(u.username) as updated_by
+  FROM tickets t
+  LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
+  LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
+  LEFT JOIN users u ON t.updated_by_user_id = u.id
+  WHERE t.status IN ('OPEN', 'SC')
+`;
 
     if (req.query.startDate && req.query.endDate) {
       query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
@@ -238,15 +238,15 @@ app.get('/api/tickets/closed', async (req, res) => {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT t.*, 
-      GROUP_CONCAT(DISTINCT tech.name ORDER BY tech.name SEPARATOR ', ') as technician_details,
-      ANY_VALUE(u.username) as updated_by
-      FROM tickets t
-      LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
-      LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
-      LEFT JOIN users u ON t.updated_by_user_id = u.id
-      WHERE t.status = 'CLOSED'
-    `;
+  SELECT t.*, 
+  GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
+  ANY_VALUE(u.username) as updated_by
+  FROM tickets t
+  LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
+  LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
+  LEFT JOIN users u ON t.updated_by_user_id = u.id
+  WHERE t.status = 'CLOSED'
+`;
 
     if (req.query.startDate && req.query.endDate) {
       query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
@@ -314,14 +314,14 @@ app.get('/api/tickets/closed/export', async (req, res) => {
     for (let ticket of tickets) {
       // Get teknisi names
       const [techs] = await db.query(`
-        SELECT tech.name
+        SELECT tech.name, tech.phone_number
         FROM ticket_technicians tt
         JOIN technicians tech ON tt.technician_nik = tech.nik
         WHERE tt.ticket_id = ?
         ORDER BY tech.name
       `, [ticket.id]);
       
-      ticket.technician_details = techs.map(t => t.name).join(', ');
+      ticket.technician_details = techs.map(t => `${t.name} (${t.phone_number || 'No HP'})`).join(', ');
 
       // Get username
       if (ticket.updated_by_user_id) {
