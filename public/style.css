@@ -6,80 +6,89 @@ body {
   background-color: #f4f7f6;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .wrapper {
   display: flex;
   align-items: flex-start;
   min-height: 100vh;
-  /* pastikan wrapper tidak tertutup footer */
-  box-sizing: border-box;
+  flex: 1; /* Memastikan wrapper mengisi ruang yang tersedia */
 }
 
-/* Sidebar Styling */
+/* ==================== SIDEBAR STYLES ==================== */
+
 #sidebar {
   width: 250px;
   height: 100vh;
   background-color: #111827;
   color: white;
-  transition: margin-left 0.3s ease-in-out, transform 0.3s;
+  transition: transform 0.3s ease-in-out; /* Gunakan transform untuk animasi yang lebih halus */
   flex-shrink: 0;
   position: fixed;
   left: 0;
   top: 0;
+  z-index: 1020; /* Pastikan sidebar di atas overlay */
   border-right: 1px solid #e5e7eb;
-  z-index: 1020;
-  margin-left: 0;
-  /* pastikan sidebar tidak menutupi footer */
-  bottom: 0;
 }
 
+/* State: Desktop - Sidebar Tersembunyi */
 #sidebar.collapsed {
-  margin-left: -250px;
+  /* Di desktop, kita menyembunyikan sidebar dengan mendorongnya ke kiri */
+  transform: translateX(-100%);
 }
 
+/* State: Mobile - Sidebar Terlihat */
 @media (max-width: 991.98px) {
   #sidebar {
+    /* Di mobile, sidebar disembunyikan secara default */
     transform: translateX(-100%);
-    margin-left: 0;
-    position: fixed;
-    z-index: 1020;
   }
   #sidebar.show {
+    /* Kelas 'show' digunakan untuk menampilkannya di mobile */
     transform: translateX(0);
   }
 }
 
-/* Konten Utama */
+/* ==================== MAIN CONTENT STYLES ==================== */
+
 #main-content {
   flex-grow: 1;
   padding: 2rem;
   width: 100%;
   min-width: 0;
   transition: margin-left 0.3s ease-in-out;
-  margin-left: 250px;
-  padding-bottom: 32px;
+  margin-left: 250px; /* Margin default saat sidebar terbuka */
+  padding-bottom: 32px; /* Ruang untuk footer */
 }
 
+/* State: Desktop - Konten Menyesuaikan Saat Sidebar Tersembunyi */
 #sidebar.collapsed ~ #main-content,
 .wrapper #main-content.sidebar-collapsed {
-  margin-left: 0 !important;
+  /* Geser konten ke kiri untuk mengisi ruang sidebar yang kosong */
+  margin-left: 0;
 }
 
 @media (max-width: 991.98px) {
   #main-content {
+    /* Di mobile, konten selalu mengambil lebar penuh */
     margin-left: 0 !important;
-    padding-bottom: 32px;
   }
 }
 
-/* Wrapper agar sidebar dan konten tidak overlap footer */
-.wrapper {
-  display: flex;
-  align-items: flex-start;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* ==================== OVERLAY STYLES ==================== */
+
+#sidebar-overlay {
+  display: none; /* Sembunyikan secara default */
+  position: fixed;
+  z-index: 1010; /* Di bawah sidebar */
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5); /* Gelapkan latar belakang */
 }
+
+/* ==================== COMPONENT STYLES ==================== */
 
 /* Card Styling */
 .card {
@@ -194,43 +203,7 @@ body {
 #techniciansModal .table th:nth-child(5),
 #techniciansModal .table td:nth-child(5) { width: 15%; }
 
-/* Overlay untuk mobile sidebar */
-#sidebar-overlay {
-  display: none;
-  position: fixed;
-  z-index: 1010;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.2);
-}
-
-/* Responsive sidebar auto-hide */
-@media (max-width: 991.98px) {
-  #sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    margin-left: 0;
-    transition: transform 0.3s;
-    transform: translateX(-100%);
-    z-index: 1020;
-  }
-  #sidebar.show {
-    transform: translateX(0);
-  }
-  #main-content {
-    margin-left: 0 !important;
-    padding-bottom: 32px;
-    transition: none;
-  }
-  footer {
-    position: static;
-    padding-bottom: 8px;
-  }
-  .wrapper {
-    padding-bottom: 0;
-  }
-}
+/* ==================== STATISTICS STYLES ==================== */
 
 /* Statistik summary cards */
 .stats-summary-card {
@@ -275,7 +248,6 @@ body {
   min-width: 200px;
   max-width: 100%;
   display: flex;
-  /* Hapus margin-top agar card rata */
   margin-top: 0 !important;
 }
 
@@ -333,6 +305,8 @@ body {
   }
 }
 
+/* ==================== FOOTER STYLES ==================== */
+
 footer {
   background: #f4f7f6;
   color: #2563eb;
@@ -342,7 +316,7 @@ footer {
   width: 100%;
   text-align: center;
   padding: 12px 0 8px 0;
-  margin-top: auto;
+  margin-top: auto; /* Mendorong footer ke bawah */
   position: relative;
   z-index: 1;
 }

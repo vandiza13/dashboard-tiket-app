@@ -27,8 +27,51 @@ let backendTotalPages = 1;
 // Tambahkan variabel global untuk cache semua tiket closed
 let allClosedTicketsCache = []; // cache semua tiket closed untuk search global
 
+// --- FUNGSI SIDEBAR ---
+
+function isMobile() {
+    return window.innerWidth <= 991;
+}
+
+function showSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (isMobile()) {
+        sidebar.classList.add('show');
+        overlay.style.display = 'block';
+    } else {
+        sidebar.classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('sidebar-collapsed');
+        
+        // Simpan status sidebar di localStorage
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('sidebarCollapsed', isCollapsed);
+    }
+}
+
+function hideSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    sidebar.classList.remove('show');
+    overlay.style.display = 'none';
+}
+
+function loadSidebarState() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('main-content');
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    
+    if (!isMobile() && isCollapsed) {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('sidebar-collapsed');
+    }
+}
+
 // Inisialisasi Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
+    // Inisialisasi Modal
     addTicketModal = new bootstrap.Modal(document.getElementById('addTicketModal'));
     updateTicketModal = new bootstrap.Modal(document.getElementById('updateTicketModal'));
     reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
@@ -36,13 +79,32 @@ document.addEventListener('DOMContentLoaded', () => {
     editTechnicianModal = new bootstrap.Modal(document.getElementById('editTechnicianModal'));
     historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
     
-    document.getElementById('sidebar-toggle').addEventListener('click', toggleSidebar);
+    // Event Listener Sidebar
+    document.getElementById('sidebar-toggle').addEventListener('click', showSidebar);
+    document.getElementById('sidebar-overlay').addEventListener('click', hideSidebar);
+    
+    // Event Listener Lainnya
     document.getElementById('addTechnicianForm').addEventListener('submit', handleAddTechnician);
     document.getElementById('save-edit-tech-btn').addEventListener('click', handleEditTechnicianSubmit);
-
     document.getElementById('category').addEventListener('change', updateSubcategoryOptions);
     document.getElementById('update_category').addEventListener('change', updateSubcategoryOptions);
 
+    // Hide sidebar on resize if not mobile
+    window.addEventListener('resize', () => {
+        if (!isMobile()) {
+            hideSidebar();
+        }
+    });
+
+    // Hide sidebar when clicking a menu (on mobile)
+    document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (isMobile()) hideSidebar();
+        });
+    });
+
+    // Inisialisasi Aplikasi
+    loadSidebarState();
     applyRoles();
     fetchActiveTechnicians();
     router(); 
@@ -52,13 +114,6 @@ window.addEventListener('hashchange', router);
 
 // --- FUNGSI UTAMA & NAVIGASI ---
 
-function toggleSidebar() {
-    // Hanya untuk desktop, mobile handled by index.html
-    if (window.innerWidth > 991) {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-        document.getElementById('main-content').classList.toggle('sidebar-collapsed');
-    }
-}
 function applyRoles() { if (localStorage.getItem('userRole') === 'View') { document.getElementById('add-ticket-btn').style.display = 'none'; } }
 
 let statsTrendChart = null;
@@ -73,6 +128,7 @@ async function router() {
     const statsSummaryContainer = document.getElementById('stats-summary-container');
     if (statsSummaryContainer) statsSummaryContainer.style.display = 'none';
 
+    // Highlight active menu
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('href') === hash) link.classList.add('active');
