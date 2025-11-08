@@ -418,7 +418,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Distribusi Subkategori Tiket</span>
+                        <span class="stats-section-title">Distribusi Jenis Tiket</span>
                     </div>
                     <div class="card-body p-0">
                         <canvas id="subcategoryChart" height="120"></canvas>
