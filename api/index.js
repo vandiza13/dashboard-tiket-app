@@ -330,11 +330,11 @@ app.get('/api/tickets/closed/export', async (req, res) => {
 
     const params = [];
     if (req.query.startDate && req.query.endDate) {
-      query += ` AND DATE(t.last_update_time) BETWEEN ? AND ?`;
+      query += ` AND DATE(t.tiket_time) BETWEEN ? AND ?`;
       params.push(req.query.startDate, req.query.endDate);
     }
 
-    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC`;
+    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC`;
 
     const [tickets] = await db.query(query, params);
 
