@@ -187,7 +187,7 @@ app.get('/api/stats/closed-trend', async (req, res) => {
   }
 });
 
-// ==================== TICKETS ROUTES ====================
+// ==================== TICKETS ROUTES ==================// 
 
 app.get('/api/tickets/running', async (req, res) => {
   try {
@@ -198,16 +198,29 @@ app.get('/api/tickets/running', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    // --- QUERY YANG TELAH DIPERBAIKI ---
     let query = `
-  SELECT t.*, 
-  GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
-  ANY_VALUE(u.username) as updated_by
-  FROM tickets t
-  LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
-  LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
-  LEFT JOIN users u ON t.updated_by_user_id = u.id
-  WHERE t.status IN ('OPEN', 'SC')
-`;
+      SELECT 
+        t.id, 
+        t.id_tiket, 
+        t.category, 
+        t.subcategory, 
+        t.tiket_time, 
+        t.deskripsi, 
+        t.status, 
+        t.update_progres, 
+        t.last_update_time, 
+        t.created_by_user_id, 
+        t.updated_by_user_id,
+        GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
+        GROUP_CONCAT(DISTINCT tech.nik ORDER BY tech.nik SEPARATOR ',') as assigned_technician_niks,
+        ANY_VALUE(u.username) as updated_by
+      FROM tickets t
+      LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
+      LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
+      LEFT JOIN users u ON t.updated_by_user_id = u.id
+      WHERE t.status IN ('OPEN', 'SC')
+    `;
 
     if (req.query.startDate && req.query.endDate) {
       query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
@@ -240,16 +253,29 @@ app.get('/api/tickets/closed', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    // --- QUERY YANG TELAH DIPERBAIKI ---
     let query = `
-  SELECT t.*, 
-  GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
-  ANY_VALUE(u.username) as updated_by
-  FROM tickets t
-  LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
-  LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
-  LEFT JOIN users u ON t.updated_by_user_id = u.id
-  WHERE t.status = 'CLOSED'
-`;
+      SELECT 
+        t.id, 
+        t.id_tiket, 
+        t.category, 
+        t.subcategory, 
+        t.tiket_time, 
+        t.deskripsi, 
+        t.status, 
+        t.update_progres, 
+        t.last_update_time, 
+        t.created_by_user_id, 
+        t.updated_by_user_id,
+        GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
+        GROUP_CONCAT(DISTINCT tech.nik ORDER BY tech.nik SEPARATOR ',') as assigned_technician_niks,
+        ANY_VALUE(u.username) as updated_by
+      FROM tickets t
+      LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
+      LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
+      LEFT JOIN users u ON t.updated_by_user_id = u.id
+      WHERE t.status = 'CLOSED'
+    `;
 
     if (req.query.startDate && req.query.endDate) {
       query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
