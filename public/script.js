@@ -967,6 +967,24 @@ function formatDateTime(s) {
   return new Intl.DateTimeFormat('id-ID', options).format(date);
 }
 
+function formatDateTimeWIB(s) {
+  if (!s) return '';
+  const date = new Date(s);
+  if (isNaN(date.getTime())) return s;
+  
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  
+  return new Intl.DateTimeFormat('id-ID', options).format(date);
+}
+
 function getStatusBadge(s) {
     s = s ? s.toUpperCase() : '';
     if (s === 'OPEN') return 'bg-danger';
