@@ -278,6 +278,7 @@ app.get('/api/tickets/closed', async (req, res) => {
 
 
 app.get('/api/tickets/closed/export', async (req, res) => {
+      console.log('!!! EKSPOR EXCEL (exceljs) DIPANGGIL !!!'); // <-- TAMBAHKAN BARIS INI
     try {
         const user = await protect(req);
         restrictTo(user, ['Admin', 'User', 'View']);
