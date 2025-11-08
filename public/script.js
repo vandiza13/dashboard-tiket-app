@@ -6,7 +6,7 @@ let addTicketModal, updateTicketModal, reportModal, techniciansModal, editTechni
 let ticketsCache = [], activeTechniciansCache = [];
 let currentCategoryFilter = 'Semua';
 let currentEditingTicket = null;
-let currentView = 'running'; // KUNCI: Variabel untuk mengingat view saat ini
+let currentView = 'running';
 const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
 
 const categories = {
@@ -16,21 +16,14 @@ const categories = {
     CENTRATAMA: ["FSI"]
 };
 
-// Tambahkan variabel global untuk pagination hasil filter
 let filteredTicketsCache = [];
 let currentPage = 1;
 const PAGE_SIZE = 20;
-
-// Tambahkan variabel global untuk pagination backend
 let backendTotalPages = 1;
-
-// Tambahkan variabel global untuk cache semua tiket closed
-let allClosedTicketsCache = []; // cache semua tiket closed untuk search global
-
-// Variabel untuk Chart.js
+let allClosedTicketsCache = [];
 let statsTrendChart = null;
-let subcategoryChart = null; // <-- VARIABEL BARU
-let statusChart = null;       // <-- VARIABEL BARU
+let subcategoryChart = null;
+let statusChart = null;
 
 // --- FUNGSI SIDEBAR ---
 
@@ -49,7 +42,6 @@ function showSidebar() {
         sidebar.classList.toggle('collapsed');
         document.getElementById('main-content').classList.toggle('sidebar-collapsed');
         
-        // Simpan status sidebar di localStorage
         const isCollapsed = sidebar.classList.contains('collapsed');
         localStorage.setItem('sidebarCollapsed', isCollapsed);
     }
@@ -76,7 +68,6 @@ function loadSidebarState() {
 
 // Inisialisasi Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
-    // Inisialisasi Modal
     addTicketModal = new bootstrap.Modal(document.getElementById('addTicketModal'));
     updateTicketModal = new bootstrap.Modal(document.getElementById('updateTicketModal'));
     reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
@@ -84,31 +75,26 @@ document.addEventListener('DOMContentLoaded', () => {
     editTechnicianModal = new bootstrap.Modal(document.getElementById('editTechnicianModal'));
     historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
     
-    // Event Listener Sidebar
     document.getElementById('sidebar-toggle').addEventListener('click', showSidebar);
     document.getElementById('sidebar-overlay').addEventListener('click', hideSidebar);
     
-    // Event Listener Lainnya
     document.getElementById('addTechnicianForm').addEventListener('submit', handleAddTechnician);
     document.getElementById('save-edit-tech-btn').addEventListener('click', handleEditTechnicianSubmit);
     document.getElementById('category').addEventListener('change', updateSubcategoryOptions);
     document.getElementById('update_category').addEventListener('change', updateSubcategoryOptions);
 
-    // Hide sidebar on resize if not mobile
     window.addEventListener('resize', () => {
         if (!isMobile()) {
             hideSidebar();
         }
     });
 
-    // Hide sidebar when clicking a menu (on mobile)
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         link.addEventListener('click', () => {
             if (isMobile()) hideSidebar();
         });
     });
 
-    // Inisialisasi Aplikasi
     loadSidebarState();
     applyRoles();
     fetchActiveTechnicians();
@@ -131,7 +117,6 @@ async function router() {
     const statsSummaryContainer = document.getElementById('stats-summary-container');
     if (statsSummaryContainer) statsSummaryContainer.style.display = 'none';
 
-    // Highlight active menu
     document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('href') === hash) link.classList.add('active');
@@ -158,11 +143,11 @@ async function router() {
             const tbody = document.getElementById('ticket-table-body');
             tbody.innerHTML = `<tr><td colspan="11" class="text-center">Memuat data dan indeks pencarian...</td></tr>`;
             const [ticketsData] = await Promise.all([
-            fetchAndRenderTickets('closed'),
-            fetchAllClosedTicketsForSearch() // 2. Ambil semua data untuk cache
+                fetchAndRenderTickets('closed'),
+                fetchAllClosedTicketsForSearch()
             ]);
             applyFiltersAndRender(1, true); 
-        break;
+            break;
         case '#stats':
             pageTitle.innerText = 'Statistik';
             mainActions.style.display = 'none';
@@ -282,7 +267,6 @@ async function fetchAndRenderStats() {
             throw new Error('Format data statistik tidak sesuai.');
         }
 
-        // Ringkasan statistik atas
         if (statsSummaryRow) {
             statsSummaryRow.innerHTML = `
                 <div class="col-md-3 col-6">
@@ -324,7 +308,6 @@ async function fetchAndRenderStats() {
             `;
         }
 
-        // Grafik tren tiket closed 30 hari terakhir
         if (typeof Chart !== "undefined" && document.getElementById('stats-trend-chart')) {
             if (statsChartLoading) statsChartLoading.style.display = 'inline';
             try {
@@ -393,7 +376,6 @@ async function fetchAndRenderStats() {
             if (statsChartLoading) statsChartLoading.style.display = 'none';
         }
 
-        // Sisa statistik detail (kategori, status, subkategori) tetap di contentArea
         contentArea.innerHTML = `
         <div class="row">
             <div class="col-lg-6 mb-4">
@@ -437,7 +419,6 @@ async function fetchAndRenderStats() {
         </div>
         `;
 
-        // Rincian subkategori running
         const runningListDiv = document.getElementById('running-subcat-list');
         if (stats.runningDetails.bySubcategory.length > 0) {
             let html = '<ul class="list-group">';
@@ -453,7 +434,6 @@ async function fetchAndRenderStats() {
             runningListDiv.innerHTML = '<p class="text-center text-muted mt-3">Tidak ada data tiket running.</p>';
         }
 
-        // Rincian subkategori closed today
         const closedListDiv = document.getElementById('closed-today-subcat-list');
         if (stats.closedTodayDetails.bySubcategory.length > 0) {
             let html = '<ul class="list-group">';
@@ -469,7 +449,6 @@ async function fetchAndRenderStats() {
             closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
         }
         
-        // --- PEMANGGILAN FUNGSI CHART BARU ---
         renderSubcategoryChart(stats.subcategoryDistribution);
         renderStatusChart(stats.statusDistribution);
 
@@ -518,9 +497,7 @@ function filterByCategory(category, clickedTab) {
     applyFiltersAndRender();
 }
 
-// --- FUNGSI FILTER YANG SUDAH DIPERBAIKI ---
 function applyFiltersAndRender(page = 1, useBackendPagination = false) {
-    // Tentukan sumber data. Untuk tab 'closed', gunakan cache lengkap.
     let dataSource = ticketsCache;
     if (currentView === 'closed') {
         dataSource = allClosedTicketsCache;
@@ -532,13 +509,11 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
     let filteredTickets = dataSource;
     let isFiltered = false;
 
-    // 1. Terapkan Filter Kategori
     if (currentCategoryFilter !== 'Semua') {
         filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
         isFiltered = true;
     }
 
-    // 2. Terapkan Filter Pencarian
     if (searchTerm) {
         filteredTickets = filteredTickets.filter(ticket =>
             Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
@@ -546,16 +521,13 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
         isFiltered = true;
     }
 
-    // 3. Render Tabel dan Pagination
     filteredTicketsCache = filteredTickets;
     currentPage = page;
 
     if (isFiltered) {
-        // Jika ada filter, gunakan pagination di sisi klien
         renderTable(filteredTicketsCache, currentPage, false);
         renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
     } else {
-        // Jika tidak ada filter, gunakan pagination dari backend
         renderTable(filteredTicketsCache, currentPage, true);
         renderPagination(backendTotalPages, currentPage);
     }
@@ -623,7 +595,6 @@ function renderPagination(totalPages, currentPage) {
     paginationHtml += '</ul>';
     paginationContainer.innerHTML = paginationHtml;
 }
-
 
 function renderTechniciansTable(technicians) {
     const tbody = document.getElementById('technicians-table-body');
@@ -733,8 +704,7 @@ function openUpdateModal(ticket) {
     document.getElementById('update_id_tiket_display').value = ticket.id_tiket;
     document.getElementById('update_status').value = ticket.status;
     
-    // --- PERBAIKAN 1: Kosongkan kolom Update Progress ---
-    document.getElementById('update_progres').value = ''; // Selalu kosong saat modal dibuka
+    document.getElementById('update_progres').value = '';
 
     const categoryDiv = document.getElementById('update_category').parentElement;
     const subcategoryDiv = document.getElementById('update_subcategory').parentElement;
@@ -755,7 +725,6 @@ function openUpdateModal(ticket) {
     const techCheckboxes = document.getElementById('technician-checkboxes-update');
     techCheckboxes.innerHTML = '';
     
-    // --- PERBAIKAN 2: Gunakan data NIK dari backend ---
     const assignedTechnicianNiks = ticket.assigned_technician_niks ? ticket.assigned_technician_niks.split(',') : [];
 
     activeTechniciansCache.forEach(tech => {
@@ -829,7 +798,6 @@ async function handleChangePassword(event) {
     }
 }
 
-
 async function showHistory(ticketId, displayId) {
     const modalBody = document.getElementById('historyModalBody');
     const modalTitle = document.getElementById('historyModalTitle');
@@ -867,10 +835,8 @@ async function showHistory(ticketId, displayId) {
     }
 }
 
-
 // --- FUNGSI HELPERS & UTILITAS ---
 
-// --- FUNGSI EXPORT ---
 async function exportClosedTickets() {
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
@@ -929,7 +895,7 @@ function generateReport() {
     }
     let t = "";
     ticketsToReport.forEach((ti, i) => {
-        const it = `${i + 1}. ${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTimeWIB(ti.tiket_time)} WIB\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.technician_details||'NULL'}\nstatus          : ${ti.status||''}`;
+        const it = `${i + 1}. ${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTimeWIB(ti.tiket_time)}\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.technician_details||'NULL'}\nstatus          : ${ti.status||''}`;
         t += it;
         if (i < ticketsToReport.length - 1) { t += "\n\n"; }
     });
@@ -949,17 +915,20 @@ function logout() {
     window.location.href = './login.html';
 }
 
-// --- FUNGSI PEMFORMAT WIB YANG BENAR ---
+// --- FUNGSI PEMFORMAT WIB YANG DIPERBAIKI ---
 
-function formatDateTimeWIB(s) {
-    console.log('[DEBUG] formatDateTimeWIB menerima input:', s);
-    if (!s) return '';
-    const date = new Date(s);
+function formatDateTimeWIB(dateTimeString) {
+    if (!dateTimeString) return '';
+    
+    // Parse tanggal dari server (yang sudah dalam timezone WIB)
+    const date = new Date(dateTimeString);
+    
     if (isNaN(date.getTime())) {
-        console.error('[ERROR] formatDateTimeWIB: Tanggal tidak valid:', s);
-        return s;
+        console.error('[ERROR] formatDateTimeWIB: Tanggal tidak valid:', dateTimeString);
+        return dateTimeString;
     }
     
+    // Format ke WIB dengan Intl.DateTimeFormat
     const options = {
         timeZone: 'Asia/Jakarta',
         year: 'numeric',
@@ -967,12 +936,17 @@ function formatDateTimeWIB(s) {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
         hour12: false
     };
     
-    const formattedDate = new Intl.DateTimeFormat('id-ID', options).format(date);
-    console.log('[DEBUG] formatDateTimeWIB menghasilkan:', formattedDate);
-    return formattedDate;
+    try {
+        const formatted = new Intl.DateTimeFormat('id-ID', options).format(date);
+        return formatted + ' WIB';
+    } catch (error) {
+        console.error('[ERROR] formatDateTimeWIB: Gagal format:', error);
+        return dateTimeString;
+    }
 }
 
 function getStatusBadge(s) {
@@ -1002,7 +976,8 @@ function updateSubcategoryOptions(event) {
     } else { subcategorySelect.disabled = true; }
 }
 
-// --- FUNGSI-FUNGSI CHART BARU ---
+// --- FUNGSI-FUNGSI CHART ---
+
 function renderSubcategoryChart(data) {
     const ctx = document.getElementById('subcategoryChart');
     if (!ctx) return;
@@ -1014,21 +989,19 @@ function renderSubcategoryChart(data) {
     const labels = data.map(item => item.subcategory || 'Tidak Dikategorikan');
     const counts = data.map(item => item.count);
 
-    // --- PALET WARNA UNTUK SETIAP SUBCATEGORY ---
     const colorPalette = [
-        'rgba(255, 99, 132, 0.7)',   // Merah Muda
-        'rgba(54, 162, 235, 0.7)',   // Biru
-        'rgba(255, 206, 86, 0.7)',   // Kuning
-        'rgba(75, 192, 192, 0.7)',   // Hijau Tosca
-        'rgba(153, 102, 255, 0.7)', // Ungu
-        'rgba(255, 159, 64, 0.7)',  // Oranye
-        'rgba(199, 199, 199, 0.7)', // Abu-abu
-        'rgba(83, 102, 255, 0.7)',  // Biru Indigo
-        'rgba(255, 99, 255, 0.7)',  // Magenta
-        'rgba(99, 255, 132, 0.7)',  // Hijau Muda
+        'rgba(255, 99, 132, 0.7)',
+        'rgba(54, 162, 235, 0.7)',
+        'rgba(255, 206, 86, 0.7)',
+        'rgba(75, 192, 192, 0.7)',
+        'rgba(153, 102, 255, 0.7)',
+        'rgba(255, 159, 64, 0.7)',
+        'rgba(199, 199, 199, 0.7)',
+        'rgba(83, 102, 255, 0.7)',
+        'rgba(255, 99, 255, 0.7)',
+        'rgba(99, 255, 132, 0.7)',
     ];
 
-    // Buat array warna dan border yang sesuai dengan jumlah data
     const backgroundColors = data.map((_, index) => colorPalette[index % colorPalette.length]);
     const borderColors = backgroundColors.map(color => color.replace('0.7', '1'));
 
@@ -1039,8 +1012,8 @@ function renderSubcategoryChart(data) {
             datasets: [{
                 label: 'Jumlah Tiket',
                 data: counts,
-                backgroundColor: backgroundColors, // <-- Gunakan warna dari palet
-                borderColor: borderColors,       // <-- Gunakan border yang sesuai
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
                 borderWidth: 1
             }]
         },
