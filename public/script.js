@@ -832,39 +832,66 @@ async function handleChangePassword(event) {
     }
 }
 
+// --- GANTI FUNGSI INI ---
 async function showHistory(ticketId, displayId) {
+    console.log(`[DEBUG] Mencoba menampilkan riwayat untuk tiket ID: ${ticketId}`);
+    
     const modalBody = document.getElementById('historyModalBody');
     const modalTitle = document.getElementById('historyModalTitle');
+    
+    // Periksa apakah elemen modal ada
+    if (!modalBody || !modalTitle) {
+        console.error("[ERROR] Elemen modal riwayat (historyModalBody atau historyModalTitle) tidak ditemukan!");
+        alert("Terjadi kesalahan internal: Elemen modal tidak ditemukan.");
+        return;
+    }
+
     modalTitle.innerText = `Riwayat Tiket: ${displayId}`;
     modalBody.innerHTML = `<p class="text-center">Memuat riwayat...</p>`;
+    
     try {
-        const response = await fetch(`${API_URL_TICKETS}/${ticketId}/history`, { headers: authHeaders });
-        if (!response.ok) throw new Error('Gagal mengambil riwayat.');
-        const history = await response.json();
-        if (!Array.isArray(history) || history.length === 0) {
-        modalBody.innerHTML = `<p class="text-center text-muted">Belum ada riwayat perubahan.</p>`;
-    } else {
-        let html = '<ul class="list-group">';
-        history.forEach(item => {
-            html += `<li class="list-group-item">
-                <!-- GUNAKAN FUNGSI BARU DI SINI -->
-                <div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div>
-                <div><strong>Perubahan:</strong> ${item.change_details || '-'}</div>
-                <div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div>
-            </li>`;
-        });
-        html += '</ul>';
-        modalBody.innerHTML = html;
+        const url = `${API_URL_TICKETS}/${ticketId}/history`;
+        console.log(`[DEBUG] Mengambil riwayat dari: ${url}`);
+        
+        const response = await fetch(url, { headers: authHeaders });
+        console.log(`[DEBUG] Respon dari server (status): ${response.status}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Gagal mengambil riwayat dari server.');
         }
+        
+        const history = await response.json();
+        console.log('[DEBUG] Data riwayat diterima:', history);
+
+        if (!Array.isArray(history) || history.length === 0) {
+            modalBody.innerHTML = `<p class="text-center text-muted">Belum ada riwayat perubahan untuk tiket ini.</p>`;
+        } else {
+            let html = '<ul class="list-group">';
+            history.forEach(item => {
+                html += `<li class="list-group-item">
+                    <div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div>
+                    <div><strong>Perubahan:</strong> ${item.change_details || '-'}</div>
+                    <div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div>
+                </li>`;
+            });
+            html += '</ul>';
+            modalBody.innerHTML = html;
+        }
+        
+        console.log("[DEBUG] Mencoba membuka modal.");
         historyModal.show();
+        console.log("[DEBUG] Perintah buka modal telah dikirim.");
+
     } catch (error) {
+        console.error('[ERROR] Terjadi error di fungsi showHistory:', error);
         modalBody.innerHTML = `<p class="text-center text-danger">${error.message}</p>`;
     }
 }
 
 // --- FUNGSI HELPERS & UTILITAS ---
 
-// --- FUNGSI EXPORT YANG SUDAH DIPERBAIKI ---
+// --- FUNGSI EXPORT ---
 async function exportClosedTickets() {
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
