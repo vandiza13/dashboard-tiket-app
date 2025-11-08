@@ -149,16 +149,21 @@ async function router() {
             dateFilterContainer.style.display = 'flex'; 
             await fetchAndRenderTickets('running');
             break;
+            // Di dalam fungsi router()
         case '#closed':
             currentView = 'closed';
             pageTitle.innerText = 'Tiket Closed';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex';
             if(exportBtn) exportBtn.style.display = 'block';
-            await fetchAndRenderTickets('closed');
-            // Fetch semua tiket closed untuk pencarian global (tanpa limit)
-            fetchAllClosedTicketsForSearch();
-            break;
+            const tbody = document.getElementById('ticket-table-body');
+            tbody.innerHTML = `<tr><td colspan="11" class="text-center">Memuat data dan indeks pencarian...</td></tr>`;
+            const [ticketsData] = await Promise.all([
+            fetchAndRenderTickets('closed'),
+            fetchAllClosedTicketsForSearch() // 2. Ambil semua data untuk cache
+            ]);
+            applyFiltersAndRender(1, true); 
+        break;
         case '#stats':
             pageTitle.innerText = 'Statistik';
             mainActions.style.display = 'none';
