@@ -735,7 +735,10 @@ function openUpdateModal(ticket) {
     document.getElementById('update_ticket_id').value = ticket.id;
     document.getElementById('update_id_tiket_display').value = ticket.id_tiket;
     document.getElementById('update_status').value = ticket.status;
-    document.getElementById('update_progres').value = ticket.update_progres || '';
+    
+    // --- PERBAIKAN 1: Kosongkan kolom Update Progress ---
+    document.getElementById('update_progres').value = ''; // Selalu kosong saat modal dibuka
+
     const categoryDiv = document.getElementById('update_category').parentElement;
     const subcategoryDiv = document.getElementById('update_subcategory').parentElement;
     if (userRole === 'User') {
@@ -751,9 +754,13 @@ function openUpdateModal(ticket) {
             document.getElementById('update_subcategory').value = ticket.subcategory;
         }, 50);
     }
+    
     const techCheckboxes = document.getElementById('technician-checkboxes-update');
     techCheckboxes.innerHTML = '';
-    const assignedTechnicianNiks = ticket.teknisi ? ticket.teknisi.split(',') : [];
+    
+    // --- PERBAIKAN 2: Gunakan data NIK dari backend ---
+    const assignedTechnicianNiks = ticket.assigned_technician_niks ? ticket.assigned_technician_niks.split(',') : [];
+
     activeTechniciansCache.forEach(tech => {
         const isChecked = assignedTechnicianNiks.includes(tech.nik);
         const displayText = `${tech.name} (${tech.phone_number || 'No HP'})`;
