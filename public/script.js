@@ -950,10 +950,15 @@ function logout() {
 }
 
 // --- FUNGSI PEMFORMAT WIB YANG BENAR ---
+
 function formatDateTimeWIB(s) {
+    console.log('[DEBUG] formatDateTimeWIB menerima input:', s);
     if (!s) return '';
     const date = new Date(s);
-    if (isNaN(date.getTime())) return s;
+    if (isNaN(date.getTime())) {
+        console.error('[ERROR] formatDateTimeWIB: Tanggal tidak valid:', s);
+        return s;
+    }
     
     const options = {
         timeZone: 'Asia/Jakarta',
@@ -962,10 +967,13 @@ function formatDateTimeWIB(s) {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
         hour12: false
     };
     
-    return new Intl.DateTimeFormat('id-ID', options).format(date);
+    const formattedDate = new Intl.DateTimeFormat('id-ID', options).format(date);
+    console.log('[DEBUG] formatDateTimeWIB menghasilkan:', formattedDate);
+    return formattedDate;
 }
 
 function getStatusBadge(s) {
