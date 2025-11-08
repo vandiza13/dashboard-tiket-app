@@ -857,7 +857,7 @@ async function showHistory(ticketId, displayId) {
         } else {
             let html = '<ul class="list-group">';
             history.forEach(item => {
-                html += `<li class="list-group-item"><div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div><div><strong>Perubahan:</strong> ${item.change_details || '-'}</div><div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div></li>`;
+                html += `<li class="list-group-item"><div><strong>Waktu:</strong> ${formatDateTime(item.change_timestamp)}</div><div><strong>Perubahan:</strong> ${item.change_details || '-'}</div><div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div></li>`;
             });
             html += '</ul>';
             modalBody.innerHTML = html;
@@ -954,24 +954,6 @@ function formatDateTime(s) {
   if (!s) return '';
   const date = new Date(s);
   if (isNaN(date.getTime())) return s;
-  const options = {
-    timeZone: 'Asia/Jakarta',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  };
-  
-  return new Intl.DateTimeFormat('id-ID', options).format(date);
-}
-
-function formatDateTimeWIB(s) {
-  if (!s) return '';
-  const date = new Date(s);
-  if (isNaN(date.getTime())) return s;
-  
   const options = {
     timeZone: 'Asia/Jakarta',
     year: 'numeric',
