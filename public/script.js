@@ -27,6 +27,11 @@ let backendTotalPages = 1;
 // Tambahkan variabel global untuk cache semua tiket closed
 let allClosedTicketsCache = []; // cache semua tiket closed untuk search global
 
+// Variabel untuk Chart.js
+let statsTrendChart = null;
+let subcategoryChart = null; // <-- VARIABEL BARU
+let statusChart = null;       // <-- VARIABEL BARU
+
 // --- FUNGSI SIDEBAR ---
 
 function isMobile() {
@@ -116,8 +121,6 @@ window.addEventListener('hashchange', router);
 
 function applyRoles() { if (localStorage.getItem('userRole') === 'View') { document.getElementById('add-ticket-btn').style.display = 'none'; } }
 
-let statsTrendChart = null;
-
 async function router() {
     const hash = window.location.hash || '#running';
     const pageTitle = document.getElementById('page-title');
@@ -140,7 +143,7 @@ async function router() {
 
     switch (hash) {
         case '#running':
-            currentView = 'running'; // Set view saat ini
+            currentView = 'running';
             pageTitle.innerText = 'Tiket Running';
             contentArea.innerHTML = createTicketTableHTML();
             dateFilterContainer.style.display = 'flex'; 
@@ -173,7 +176,6 @@ async function router() {
 }
 
 async function fetchAllClosedTicketsForSearch() {
-    // Ambil semua tiket closed tanpa pagination untuk pencarian global
     let url = `${API_URL_TICKETS}/closed?page=1&limit=10000`;
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
@@ -240,7 +242,7 @@ async function fetchAndRenderTickets(type, page = 1) {
                 categoryTabs.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
                 categoryTabs.querySelector('.nav-link').classList.add('active');
             }
-            applyFiltersAndRender(currentPage, true); // true = gunakan backend pagination
+            applyFiltersAndRender(currentPage, true);
         } else { throw new Error(data.error || 'Format data salah.'); }
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal memuat data.</td></tr>`;
@@ -272,7 +274,7 @@ async function fetchAndRenderStats() {
         const response = await fetch(`/api/stats?ts=${Date.now()}`, { headers: authHeaders });
         if (!response.ok) throw new Error('Gagal mengambil data statistik');
         const stats = await response.json();
-        if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth) {
+        if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth || !stats.subcategoryDistribution) {
             throw new Error('Format data statistik tidak sesuai.');
         }
 
@@ -324,7 +326,6 @@ async function fetchAndRenderStats() {
             try {
                 const trendRes = await fetch(`/api/stats/closed-trend?days=30`, { headers: authHeaders });
                 const trendData = await trendRes.json();
-                // Pastikan data valid dan urut tanggal
                 const labels = trendData.map(item => item.date);
                 const data = trendData.map(item => item.count);
 
@@ -412,17 +413,21 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Distribusi Status Tiket</span>
+                        <span class="stats-section-title">Distribusi Subkategori Tiket</span>
                     </div>
-                    <div class="card-body" id="status-distribution-body"></div>
+                    <div class="card-body p-0">
+                        <canvas id="subcategoryChart" height="120"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Distribusi Kategori Tiket</span>
+                        <span class="stats-section-title">Distribusi Status Tiket</span>
                     </div>
-                    <div class="card-body" id="category-distribution-body"></div>
+                    <div class="card-body p-0">
+                        <canvas id="statusChart" height="120"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -459,38 +464,11 @@ async function fetchAndRenderStats() {
         } else {
             closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
         }
+        
+        // --- PEMANGGILAN FUNGSI CHART BARU ---
+        renderSubcategoryChart(stats.subcategoryDistribution);
+        renderStatusChart(stats.statusDistribution);
 
-        // Distribusi status tiket
-        const statusBody = document.getElementById('status-distribution-body');
-        if (stats.statusDistribution.length > 0) {
-            let html = '<ul class="list-group">';
-            stats.statusDistribution.forEach(item => {
-                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                    ${item.status || '-'}
-                    <span class="badge bg-secondary rounded-pill">${item.count}</span>
-                </li>`;
-            });
-            html += '</ul>';
-            statusBody.innerHTML = html;
-        } else {
-            statusBody.innerHTML = '<p class="text-center text-muted">Tidak ada data status tiket.</p>';
-        }
-
-        // Distribusi kategori tiket
-        const categoryBody = document.getElementById('category-distribution-body');
-        if (stats.categoryDistribution.length > 0) {
-            let html = '<ul class="list-group">';
-            stats.categoryDistribution.forEach(item => {
-                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                    ${item.category || '-'}
-                    <span class="badge bg-info rounded-pill">${item.count}</span>
-                </li>`;
-            });
-            html += '</ul>';
-            categoryBody.innerHTML = html;
-        } else {
-            categoryBody.innerHTML = '<p class="text-center text-muted">Tidak ada data kategori tiket.</p>';
-        }
     } catch(error) {
         contentArea.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
         const statsChartLoading = document.getElementById('stats-chart-loading');
@@ -536,7 +514,9 @@ function filterByCategory(category, clickedTab) {
     applyFiltersAndRender();
 }
 
+// --- FUNGSI FILTER YANG SUDAH DIPERBAIKI ---
 function applyFiltersAndRender(page = 1, useBackendPagination = false) {
+    // Tentukan sumber data. Untuk tab 'closed', gunakan cache lengkap.
     let dataSource = ticketsCache;
     if (currentView === 'closed') {
         dataSource = allClosedTicketsCache;
@@ -548,11 +528,13 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
     let filteredTickets = dataSource;
     let isFiltered = false;
 
+    // 1. Terapkan Filter Kategori
     if (currentCategoryFilter !== 'Semua') {
         filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
         isFiltered = true;
     }
 
+    // 2. Terapkan Filter Pencarian
     if (searchTerm) {
         filteredTickets = filteredTickets.filter(ticket =>
             Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
@@ -560,13 +542,16 @@ function applyFiltersAndRender(page = 1, useBackendPagination = false) {
         isFiltered = true;
     }
 
+    // 3. Render Tabel dan Pagination
     filteredTicketsCache = filteredTickets;
     currentPage = page;
 
     if (isFiltered) {
+        // Jika ada filter, gunakan pagination di sisi klien
         renderTable(filteredTicketsCache, currentPage, false);
         renderPagination(Math.ceil(filteredTicketsCache.length / PAGE_SIZE), currentPage);
     } else {
+        // Jika tidak ada filter, gunakan pagination dari backend
         renderTable(filteredTicketsCache, currentPage, true);
         renderPagination(backendTotalPages, currentPage);
     }
@@ -765,10 +750,10 @@ function openUpdateModal(ticket) {
     techCheckboxes.innerHTML = '';
     const assignedTechnicianNiks = ticket.teknisi ? ticket.teknisi.split(',') : [];
     activeTechniciansCache.forEach(tech => {
-    const isChecked = assignedTechnicianNiks.includes(tech.nik);
-    const displayText = `${tech.name} (${tech.phone_number || 'No HP'})`;
-    techCheckboxes.innerHTML += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${tech.nik}" id="tech_update_${tech.nik}" ${isChecked ? 'checked' : ''}><label class="form-check-label" for="tech_update_${tech.nik}">${displayText}</label></div>`;
-});
+        const isChecked = assignedTechnicianNiks.includes(tech.nik);
+        const displayText = `${tech.name} (${tech.phone_number || 'No HP'})`;
+        techCheckboxes.innerHTML += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${tech.nik}" id="tech_update_${tech.nik}" ${isChecked ? 'checked' : ''}><label class="form-check-label" for="tech_update_${tech.nik}">${displayText}</label></div>`;
+    });
     updateTicketModal.show();
 }
 
@@ -835,9 +820,7 @@ async function handleChangePassword(event) {
     }
 }
 
-// Perbaiki showHistory agar kompatibel dengan backend dan tampil di modal dengan benar
 async function showHistory(ticketId, displayId) {
-    // Pastikan id elemen sesuai dengan modal di index.html
     const modalBody = document.getElementById('historyModalBody');
     const modalTitle = document.getElementById('historyModalTitle');
     modalTitle.innerText = `Riwayat Tiket: ${displayId}`;
@@ -866,8 +849,55 @@ async function showHistory(ticketId, displayId) {
     }
 }
 
-
 // --- FUNGSI HELPERS & UTILITAS ---
+
+// --- FUNGSI EXPORT YANG SUDAH DIPERBAIKI ---
+async function exportClosedTickets() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    
+    let url = `${API_URL_TICKETS}/closed/export`;
+    const separator = url.includes('?') ? '&' : '?';
+    url += `${separator}_t=${Date.now()}`;
+
+    if (startDate && endDate) {
+        url += `&startDate=${startDate}&endDate=${endDate}`;
+    }
+
+    try {
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Gagal mengekspor data.');
+        }
+
+        const blob = await response.blob();
+        
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'Laporan_Tiket_Closed.xlsx';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch.length === 2) filename = filenameMatch[1];
+        }
+        
+        a.download = filename;
+        
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        
+        window.URL.revokeObjectURL(downloadUrl);
+
+    } catch (error) {
+        alert(error.message);
+    }
+}
 
 function generateReport() {
     let ticketsToReport = ticketsCache;
@@ -888,60 +918,6 @@ function generateReport() {
     reportModal.show();
 }
 
-async function exportClosedTickets() {
-    const startDate = document.getElementById('startDate')?.value;
-    const endDate = document.getElementById('endDate')?.value;
-    
-    // Bangun URL dengan cache-buster
-    let url = `${API_URL_TICKETS}/closed/export`;
-    const separator = url.includes('?') ? '&' : '?';
-    url += `${separator}_t=${Date.now()}`;
-
-    if (startDate && endDate) {
-        url += `&startDate=${startDate}&endDate=${endDate}`;
-    }
-
-    try {
-        // Gunakan metode fetch untuk mendapatkan blob
-        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Gagal mengekspor data.');
-        }
-
-        const blob = await response.blob();
-        
-        // Buat URL sementara untuk blob
-        const downloadUrl = window.URL.createObjectURL(blob);
-        
-        // Buat elemen <a> secara dinamis untuk memicu unduhan
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        
-        // Ambil nama file dari header 'Content-Disposition'
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'Laporan_Tiket_Closed.xlsx'; // Nama default
-        if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-            if (filenameMatch.length === 2) filename = filenameMatch[1];
-        }
-        
-        a.download = filename;
-        
-        // Tambahkan ke DOM, klik, lalu hapus
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        
-        // Bersihkan URL objek untuk membebaskan memori
-        window.URL.revokeObjectURL(downloadUrl);
-
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
 function copyReportToClipboard() {
     const t = document.getElementById('report-textarea');
     t.select();
@@ -959,7 +935,7 @@ function formatDateTime(s) {
   const date = new Date(s);
   if (isNaN(date.getTime())) return s;
   const options = {
-    timeZone: 'Asia/Jakarta', // WIB timezone
+    timeZone: 'Asia/Jakarta',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -996,4 +972,100 @@ function updateSubcategoryOptions(event) {
         categories[category].forEach(sub => { subcategorySelect.innerHTML += `<option value="${sub}">${sub}</option>`; });
         subcategorySelect.disabled = false;
     } else { subcategorySelect.disabled = true; }
+}
+
+// --- FUNGSI-FUNGSI CHART BARU ---
+function renderSubcategoryChart(data) {
+    const ctx = document.getElementById('subcategoryChart');
+    if (!ctx) return;
+
+    if (subcategoryChart) {
+        subcategoryChart.destroy();
+    }
+
+    const labels = data.map(item => item.subcategory || 'Tidak Dikategorikan');
+    const counts = data.map(item => item.count);
+
+    subcategoryChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Jumlah Tiket',
+                data: counts,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+function renderStatusChart(data) {
+    const ctx = document.getElementById('statusChart');
+    if (!ctx) return;
+
+    if (statusChart) {
+        statusChart.destroy();
+    }
+    
+    const labels = data.map(item => item.status || 'Tidak Diketahui');
+    const counts = data.map(item => item.count);
+
+    statusChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Jumlah Tiket',
+                data: counts,
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.7)',
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(34, 197, 94, 0.7)',
+                    'rgba(156, 163, 175, 0.7)',
+                ],
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            const sum = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / sum) * 100).toFixed(1);
+                            label += `${context.parsed} (${percentage}%)`;
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }

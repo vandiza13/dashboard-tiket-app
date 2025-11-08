@@ -144,6 +144,7 @@ app.get('/api/stats', async (req, res) => {
     
     const [statusDist] = await db.query("SELECT status, COUNT(*) as count FROM tickets GROUP BY status ORDER BY count DESC");
     const [categoryDist] = await db.query("SELECT category, COUNT(*) as count FROM tickets GROUP BY category ORDER BY count DESC");
+    const [subcategoryDist] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets GROUP BY subcategory ORDER BY count DESC");
 
     res.json({
       runningDetails: {
@@ -156,7 +157,8 @@ app.get('/api/stats', async (req, res) => {
       },
       closedThisMonth: closedThisMonth[0].count,
       statusDistribution: statusDist,
-      categoryDistribution: categoryDist
+      categoryDistribution: categoryDist,
+      subcategoryDistribution: subcategoryDist
     });
   } catch (error) {
     console.error('Stats error:', error);
