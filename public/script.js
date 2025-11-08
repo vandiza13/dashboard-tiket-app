@@ -574,7 +574,6 @@ function renderTable(ticketsToRender, page = 1, useBackendPagination = false) {
         pagedTickets = ticketsToRender;
         startIdx = (currentPage - 1) * PAGE_SIZE;
     } else {
-        // Pagination logic lokal
         startIdx = (page - 1) * PAGE_SIZE;
         const endIdx = startIdx + PAGE_SIZE;
         pagedTickets = ticketsToRender.slice(startIdx, endIdx);
@@ -583,7 +582,7 @@ function renderTable(ticketsToRender, page = 1, useBackendPagination = false) {
     let rowsHtml = '';
     pagedTickets.forEach((ticket, index) => {
         let actionButtons = 'No Action';
-        const historyButton = `<button class="btn btn-sm btn-outline-info" onclick="showHistory(${ticket.id}, '${ticket.id_tiket}')" title="Lihat Riwayat"><i class="bi bi-clock-history"></i></button>`;
+        const historyButton = `<button class="btn btn-sm btn-outline-info" onclick='showHistory(${ticket.id}, ${JSON.stringify(ticket.id_tiket)})' title="Lihat Riwayat"><i class="bi bi-clock-history"></i></button>`;
         if (localUserRole === 'Admin') {
             actionButtons = `<div class="btn-group">${historyButton}<button class="btn btn-sm btn-warning" onclick='openUpdateModal(${JSON.stringify(ticket)})' title="Update"><i class="bi bi-pencil-fill"></i></button><button class="btn btn-sm btn-danger" onclick='confirmDeleteTicket(${ticket.id})' title="Hapus"><i class="bi bi-trash-fill"></i></button></div>`;
         } else if (localUserRole === 'User') {
@@ -591,7 +590,6 @@ function renderTable(ticketsToRender, page = 1, useBackendPagination = false) {
         } else {
             actionButtons = historyButton;
         }
-        // Nomor urut sesuai halaman
         rowsHtml += `<tr><td>${startIdx + index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
     });
     tbody.innerHTML = rowsHtml;
@@ -834,60 +832,42 @@ async function handleChangePassword(event) {
 
 // --- GANTI FUNGSI INI ---
 async function showHistory(ticketId, displayId) {
-    console.log(`[DEBUG] Mencoba menampilkan riwayat untuk tiket ID: ${ticketId}`);
-    
     const modalBody = document.getElementById('historyModalBody');
     const modalTitle = document.getElementById('historyModalTitle');
-    
-    // Periksa apakah elemen modal ada
-    if (!modalBody || !modalTitle) {
-        console.error("[ERROR] Elemen modal riwayat (historyModalBody atau historyModalTitle) tidak ditemukan!");
-        alert("Terjadi kesalahan internal: Elemen modal tidak ditemukan.");
+    const modal = bootstrap.Modal.getInstance(document.getElementById('historyModal')) || new bootstrap.Modal(document.getElementById('historyModal'));
+
+    if (!modalBody || !modalTitle || !modal) {
+        alert("Komponen modal riwayat tidak ditemukan. Halaman mungkin belum dimuat dengan benar.");
         return;
     }
 
     modalTitle.innerText = `Riwayat Tiket: ${displayId}`;
-    modalBody.innerHTML = `<p class="text-center">Memuat riwayat...</p>`;
-    
+    modalBody.innerHTML = `<div class="text-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Memuat riwayat...</p></div>`;
+    modal.show();
+
     try {
-        const url = `${API_URL_TICKETS}/${ticketId}/history`;
-        console.log(`[DEBUG] Mengambil riwayat dari: ${url}`);
-        
-        const response = await fetch(url, { headers: authHeaders });
-        console.log(`[DEBUG] Respon dari server (status): ${response.status}`);
-        
+        const response = await fetch(`${API_URL_TICKETS}/${ticketId}/history`, { headers: authHeaders });
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Gagal mengambil riwayat dari server.');
+            throw new Error(`Gagal mengambil riwayat: ${response.statusText}`);
         }
-        
         const history = await response.json();
-        console.log('[DEBUG] Data riwayat diterima:', history);
 
         if (!Array.isArray(history) || history.length === 0) {
-            modalBody.innerHTML = `<p class="text-center text-muted">Belum ada riwayat perubahan untuk tiket ini.</p>`;
+            modalBody.innerHTML = `<p class="text-center text-muted p-3">Belum ada riwayat perubahan untuk tiket ini.</p>`;
         } else {
             let html = '<ul class="list-group">';
             history.forEach(item => {
-                html += `<li class="list-group-item">
-                    <div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div>
-                    <div><strong>Perubahan:</strong> ${item.change_details || '-'}</div>
-                    <div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div>
-                </li>`;
+                html += `<li class="list-group-item"><div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div><div><strong>Perubahan:</strong> ${item.change_details || '-'}</div><div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div></li>`;
             });
             html += '</ul>';
             modalBody.innerHTML = html;
         }
-        
-        console.log("[DEBUG] Mencoba membuka modal.");
-        historyModal.show();
-        console.log("[DEBUG] Perintah buka modal telah dikirim.");
-
     } catch (error) {
-        console.error('[ERROR] Terjadi error di fungsi showHistory:', error);
-        modalBody.innerHTML = `<p class="text-center text-danger">${error.message}</p>`;
+        console.error('Gagal memuat riwayat:', error);
+        modalBody.innerHTML = `<div class="alert alert-danger m-3">Gagal memuat riwayat: ${error.message}</div>`;
     }
 }
+
 
 // --- FUNGSI HELPERS & UTILITAS ---
 
