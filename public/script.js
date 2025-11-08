@@ -894,11 +894,12 @@ async function exportClosedTickets() {
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
     let url = `${API_URL_TICKETS}/closed/export`;
+    const separator = url.includes('?') ? '&' : '?'; // Cek apakah sudah ada parameter '?'
+    url += `${separator}_t=${Date.now()}`; // Tambahkan timestamp unik
 
-    if (startDate && endDate) {
-        url += `?startDate=${startDate}&endDate=${endDate}`;
-    }
-
+        if (startDate && endDate) {
+        url += `&startDate=${startDate}&endDate=${endDate}`;
+        }
     try {
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
         if (!response.ok) {
