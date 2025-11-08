@@ -835,18 +835,19 @@ async function showHistory(ticketId, displayId) {
         if (!response.ok) throw new Error('Gagal mengambil riwayat.');
         const history = await response.json();
         if (!Array.isArray(history) || history.length === 0) {
-            modalBody.innerHTML = `<p class="text-center text-muted">Belum ada riwayat perubahan.</p>`;
-        } else {
-            let html = '<ul class="list-group">';
-            history.forEach(item => {
-                html += `<li class="list-group-item">
-                    <div><strong>Waktu:</strong> ${formatDateTime(item.change_timestamp)}</div>
-                    <div><strong>Perubahan:</strong> ${item.change_details || '-'}</div>
-                    <div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div>
-                </li>`;
-            });
-            html += '</ul>';
-            modalBody.innerHTML = html;
+        modalBody.innerHTML = `<p class="text-center text-muted">Belum ada riwayat perubahan.</p>`;
+    } else {
+        let html = '<ul class="list-group">';
+        history.forEach(item => {
+            html += `<li class="list-group-item">
+                <!-- GUNAKAN FUNGSI BARU DI SINI -->
+                <div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div>
+                <div><strong>Perubahan:</strong> ${item.change_details || '-'}</div>
+                <div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div>
+            </li>`;
+        });
+        html += '</ul>';
+        modalBody.innerHTML = html;
         }
         historyModal.show();
     } catch (error) {
