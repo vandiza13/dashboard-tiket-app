@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const ExcelJS = require('exceljs');
 const { Parser } = require('json2csv');
 const { db } = require('./_utils/db');
 const { protect, restrictTo } = require('./_utils/auth');
@@ -275,77 +276,115 @@ app.get('/api/tickets/closed', async (req, res) => {
   }
 });
 
+
 app.get('/api/tickets/closed/export', async (req, res) => {
-  try {
-    const user = await protect(req);
-    restrictTo(user, ['Admin', 'User', 'View']);
+    try {
+        const user = await protect(req);
+        restrictTo(user, ['Admin', 'User', 'View']);
 
-    let baseQuery = `
-      SELECT 
-        t.id, 
-        t.id_tiket, 
-        t.category, 
-        t.subcategory, 
-        t.tiket_time, 
-        t.deskripsi, 
-        t.status,
-        t.update_progres, 
-        t.last_update_time,
-        t.updated_by_user_id
-      FROM tickets t
-      WHERE t.status = 'CLOSED'
-    `;
+        // Query database yang sama (sudah efisien)
+        let query = `
+            SELECT 
+                t.id, 
+                t.id_tiket, 
+                t.category, 
+                t.subcategory, 
+                t.tiket_time, 
+                t.deskripsi, 
+                t.status,
+                t.update_progres, 
+                t.last_update_time,
+                GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
+                ANY_VALUE(u.username) as updated_by
+            FROM tickets t
+            LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
+            LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
+            LEFT JOIN users u ON t.updated_by_user_id = u.id
+            WHERE t.status = 'CLOSED'
+        `;
 
-    const params = [];
-    if (req.query.startDate && req.query.endDate) {
-      baseQuery += ` AND DATE(t.last_update_time) BETWEEN ? AND ?`;
-      params.push(req.query.startDate, req.query.endDate);
+        const params = [];
+        if (req.query.startDate && req.query.endDate) {
+            query += ` AND DATE(t.last_update_time) BETWEEN ? AND ?`;
+            params.push(req.query.startDate, req.query.endDate);
+        }
+
+        query += ` GROUP BY t.id ORDER BY t.last_update_time DESC`;
+
+        const [tickets] = await db.query(query, params);
+
+        if (tickets.length === 0) {
+            return res.status(404).json({ error: 'Tidak ada data untuk diekspor pada rentang tanggal ini.' });
+        }
+
+        // --- MEMBUAT FILE EXCEL ---
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Laporan Tiket Closed');
+
+        // Definisikan header kolom
+        worksheet.columns = [
+            { header: 'ID', key: 'id', width: 10 },
+            { header: 'ID Tiket', key: 'id_tiket', width: 25 },
+            { header: 'Kategori', key: 'category', width: 15 },
+            { header: 'Sub-kategori', key: 'subcategory', width: 20 },
+            { header: 'Waktu Tiket', key: 'tiket_time', width: 25 },
+            { header: 'Deskripsi', key: 'deskripsi', width: 50 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Teknisi', key: 'technician_details', width: 40 },
+            { header: 'Update Progres', key: 'update_progres', width: 60 },
+            { header: 'Update Terakhir', key: 'last_update_time', width: 25 },
+            { header: 'Updated By', key: 'updated_by', width: 20 }
+        ];
+
+        // Tambahkan data baris
+        worksheet.addRows(tickets);
+
+        // --- MEMBUAT TAMPILAN RAPIH (STYLING) ---
+        
+        // 1. Buat header menjadi tebal dan beri warna latar
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: '366092' } // Warna biru tua
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = {
+                top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+            };
+        });
+
+        // 2. Beri border pada semua sel data
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 1) { // Lewati baris header
+                row.eachCell((cell) => {
+                    cell.border = {
+                        top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+                    };
+                });
+            }
+        });
+        
+        // 3. Atur alignment untuk kolom deskripsi dan progres (wrap text)
+        worksheet.getColumn('deskripsi').alignment = { wrapText: true };
+        worksheet.getColumn('update_progres').alignment = { wrapText: true };
+
+        // --- KIRIM FILE KE CLIENT ---
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="Laporan_Tiket_Closed_${new Date().toISOString().slice(0,10)}.xlsx"`
+        );
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Export error:', error);
+        res.status(500).json({ error: 'Gagal mengekspor data. Terjadi kesalahan di server.' });
     }
-
-    baseQuery += ` ORDER BY t.last_update_time DESC`;
-
-    const [tickets] = await db.query(baseQuery, params);
-
-    if (tickets.length === 0) {
-      return res.status(404).json({ error: 'Tidak ada data untuk diekspor' });
-    }
-
-    // Get technicians dan username untuk setiap ticket
-    for (let ticket of tickets) {
-      // Get teknisi names
-      const [techs] = await db.query(`
-        SELECT tech.name, tech.phone_number
-        FROM ticket_technicians tt
-        JOIN technicians tech ON tt.technician_nik = tech.nik
-        WHERE tt.ticket_id = ?
-        ORDER BY tech.name
-      `, [ticket.id]);
-      
-      ticket.technician_details = techs.map(t => `${t.name} (${t.phone_number || 'No HP'})`).join(', ');
-
-      // Get username
-      if (ticket.updated_by_user_id) {
-        const [userRows] = await db.query('SELECT username FROM users WHERE id = ?', [ticket.updated_by_user_id]);
-        ticket.updated_by = userRows.length > 0 ? userRows[0].username : null;
-      } else {
-        ticket.updated_by = null;
-      }
-      
-      // Remove updated_by_user_id sebelum export
-      delete ticket.updated_by_user_id;
-    }
-
-    const fields = ['id', 'id_tiket', 'category', 'subcategory', 'tiket_time', 'deskripsi', 'status', 'technician_details', 'update_progres', 'last_update_time', 'updated_by'];
-    const parser = new Parser({ fields });
-    const csv = parser.parse(tickets);
-
-    res.header('Content-Type', 'text/csv; charset=utf-8');
-    res.header('Content-Disposition', 'attachment; filename=closed_tickets.csv');
-    res.send('\uFEFF' + csv);
-  } catch (error) {
-    console.error('Export error:', error);
-    res.status(500).json({ error: 'Gagal mengekspor data' });
-  }
 });
 
 app.post('/api/tickets', async (req, res) => {
