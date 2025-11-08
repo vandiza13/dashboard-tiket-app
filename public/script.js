@@ -986,6 +986,24 @@ function renderSubcategoryChart(data) {
     const labels = data.map(item => item.subcategory || 'Tidak Dikategorikan');
     const counts = data.map(item => item.count);
 
+    // --- PALET WARNA UNTUK SETIAP SUBCATEGORY ---
+    const colorPalette = [
+        'rgba(255, 99, 132, 0.7)',   // Merah Muda
+        'rgba(54, 162, 235, 0.7)',   // Biru
+        'rgba(255, 206, 86, 0.7)',   // Kuning
+        'rgba(75, 192, 192, 0.7)',   // Hijau Tosca
+        'rgba(153, 102, 255, 0.7)', // Ungu
+        'rgba(255, 159, 64, 0.7)',  // Oranye
+        'rgba(199, 199, 199, 0.7)', // Abu-abu
+        'rgba(83, 102, 255, 0.7)',  // Biru Indigo
+        'rgba(255, 99, 255, 0.7)',  // Magenta
+        'rgba(99, 255, 132, 0.7)',  // Hijau Muda
+    ];
+
+    // Buat array warna dan border yang sesuai dengan jumlah data
+    const backgroundColors = data.map((_, index) => colorPalette[index % colorPalette.length]);
+    const borderColors = backgroundColors.map(color => color.replace('0.7', '1'));
+
     subcategoryChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -993,8 +1011,8 @@ function renderSubcategoryChart(data) {
             datasets: [{
                 label: 'Jumlah Tiket',
                 data: counts,
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: backgroundColors, // <-- Gunakan warna dari palet
+                borderColor: borderColors,       // <-- Gunakan border yang sesuai
                 borderWidth: 1
             }]
         },
