@@ -131,6 +131,7 @@ app.get('/api/stats', async (req, res) => {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
+    // Gunakan NOW() yang sudah di-set timezone WIB dari koneksi pool
     const today = new Date().toISOString().split('T')[0];
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
@@ -187,7 +188,7 @@ app.get('/api/stats/closed-trend', async (req, res) => {
   }
 });
 
-// ==================== TICKETS ROUTES ==================// 
+// ==================== TICKETS ROUTES ==================
 
 app.get('/api/tickets/running', async (req, res) => {
   try {
@@ -198,7 +199,6 @@ app.get('/api/tickets/running', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    // --- QUERY YANG TELAH DIPERBAIKI ---
     let query = `
       SELECT 
         t.id, 
@@ -253,7 +253,6 @@ app.get('/api/tickets/closed', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    // --- QUERY YANG TELAH DIPERBAIKI ---
     let query = `
       SELECT 
         t.id, 
@@ -304,116 +303,112 @@ app.get('/api/tickets/closed', async (req, res) => {
   }
 });
 
-
 app.get('/api/tickets/closed/export', async (req, res) => {
-      console.log('!!! EKSPOR EXCEL (exceljs) DIPANGGIL !!!'); // <-- TAMBAHKAN BARIS INI
-    try {
-        const user = await protect(req);
-        restrictTo(user, ['Admin', 'User', 'View']);
+  try {
+    const user = await protect(req);
+    restrictTo(user, ['Admin', 'User', 'View']);
 
-        // Query database yang sama (sudah efisien)
-        let query = `
-            SELECT 
-                t.id, 
-                t.id_tiket, 
-                t.category, 
-                t.subcategory, 
-                t.tiket_time, 
-                t.deskripsi, 
-                t.status,
-                t.update_progres, 
-                t.last_update_time,
-                GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
-                ANY_VALUE(u.username) as updated_by
-            FROM tickets t
-            LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
-            LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
-            LEFT JOIN users u ON t.updated_by_user_id = u.id
-            WHERE t.status = 'CLOSED'
-        `;
+    let query = `
+      SELECT 
+        t.id, 
+        t.id_tiket, 
+        t.category, 
+        t.subcategory, 
+        t.tiket_time, 
+        t.deskripsi, 
+        t.status,
+        t.update_progres, 
+        t.last_update_time,
+        GROUP_CONCAT(DISTINCT CONCAT(tech.name, ' (', IFNULL(tech.phone_number, 'No HP'), ')') ORDER BY tech.name SEPARATOR ', ') as technician_details,
+        ANY_VALUE(u.username) as updated_by
+      FROM tickets t
+      LEFT JOIN ticket_technicians tt ON t.id = tt.ticket_id
+      LEFT JOIN technicians tech ON tt.technician_nik = tech.nik
+      LEFT JOIN users u ON t.updated_by_user_id = u.id
+      WHERE t.status = 'CLOSED'
+    `;
 
-        const params = [];
-        if (req.query.startDate && req.query.endDate) {
-            query += ` AND DATE(t.last_update_time) BETWEEN ? AND ?`;
-            params.push(req.query.startDate, req.query.endDate);
-        }
-
-        query += ` GROUP BY t.id ORDER BY t.last_update_time DESC`;
-
-        const [tickets] = await db.query(query, params);
-
-        if (tickets.length === 0) {
-            return res.status(404).json({ error: 'Tidak ada data untuk diekspor pada rentang tanggal ini.' });
-        }
-
-        // --- MEMBUAT FILE EXCEL ---
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Laporan Tiket Closed');
-
-        // Definisikan header kolom
-        worksheet.columns = [
-            { header: 'ID', key: 'id', width: 10 },
-            { header: 'ID Tiket', key: 'id_tiket', width: 25 },
-            { header: 'Kategori', key: 'category', width: 15 },
-            { header: 'Sub-kategori', key: 'subcategory', width: 20 },
-            { header: 'Waktu Tiket', key: 'tiket_time', width: 25 },
-            { header: 'Deskripsi', key: 'deskripsi', width: 50 },
-            { header: 'Status', key: 'status', width: 15 },
-            { header: 'Teknisi', key: 'technician_details', width: 40 },
-            { header: 'Update Progres', key: 'update_progres', width: 60 },
-            { header: 'Update Terakhir', key: 'last_update_time', width: 25 },
-            { header: 'Updated By', key: 'updated_by', width: 20 }
-        ];
-
-        // Tambahkan data baris
-        worksheet.addRows(tickets);
-
-        // --- MEMBUAT TAMPILAN RAPIH (STYLING) ---
-        
-        // 1. Buat header menjadi tebal dan beri warna latar
-        worksheet.getRow(1).eachCell((cell) => {
-            cell.font = { bold: true, color: { argb: 'FFFFFF' } };
-            cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: '366092' } // Warna biru tua
-            };
-            cell.alignment = { vertical: 'middle', horizontal: 'center' };
-            cell.border = {
-                top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
-            };
-        });
-
-        // 2. Beri border pada semua sel data
-        worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber > 1) { // Lewati baris header
-                row.eachCell((cell) => {
-                    cell.border = {
-                        top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
-                    };
-                });
-            }
-        });
-        
-        // 3. Atur alignment untuk kolom deskripsi dan progres (wrap text)
-        worksheet.getColumn('deskripsi').alignment = { wrapText: true };
-        worksheet.getColumn('update_progres').alignment = { wrapText: true };
-
-        // --- KIRIM FILE KE CLIENT ---
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="Laporan_Tiket_Closed_${new Date().toISOString().slice(0,10)}.xlsx"`
-        );
-        await workbook.xlsx.write(res);
-        res.end();
-    } catch (error) {
-        console.error('Export error:', error);
-        res.status(500).json({ error: 'Gagal mengekspor data. Terjadi kesalahan di server.' });
+    const params = [];
+    if (req.query.startDate && req.query.endDate) {
+      query += ` AND DATE(t.last_update_time) BETWEEN ? AND ?`;
+      params.push(req.query.startDate, req.query.endDate);
     }
+
+    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC`;
+
+    const [tickets] = await db.query(query, params);
+
+    if (tickets.length === 0) {
+      return res.status(404).json({ error: 'Tidak ada data untuk diekspor pada rentang tanggal ini.' });
+    }
+
+    // Konversi datetime ke format WIB untuk Excel
+    const ticketsFormatted = tickets.map(ticket => ({
+      ...ticket,
+      tiket_time: formatDateTimeForExcel(ticket.tiket_time),
+      last_update_time: formatDateTimeForExcel(ticket.last_update_time)
+    }));
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Laporan Tiket Closed');
+
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'ID Tiket', key: 'id_tiket', width: 25 },
+      { header: 'Kategori', key: 'category', width: 15 },
+      { header: 'Sub-kategori', key: 'subcategory', width: 20 },
+      { header: 'Waktu Tiket (WIB)', key: 'tiket_time', width: 25 },
+      { header: 'Deskripsi', key: 'deskripsi', width: 50 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Teknisi', key: 'technician_details', width: 40 },
+      { header: 'Update Progres', key: 'update_progres', width: 60 },
+      { header: 'Update Terakhir (WIB)', key: 'last_update_time', width: 25 },
+      { header: 'Updated By', key: 'updated_by', width: 20 }
+    ];
+
+    worksheet.addRows(ticketsFormatted);
+
+    // Styling
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '366092' }
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+      };
+    });
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+      }
+    });
+    
+    worksheet.getColumn('deskripsi').alignment = { wrapText: true };
+    worksheet.getColumn('update_progres').alignment = { wrapText: true };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Laporan_Tiket_Closed_${new Date().toISOString().slice(0,10)}.xlsx"`
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Gagal mengekspor data. Terjadi kesalahan di server.' });
+  }
 });
 
 app.post('/api/tickets', async (req, res) => {
@@ -426,9 +421,9 @@ app.post('/api/tickets', async (req, res) => {
       return res.status(400).json({ error: 'Semua field harus diisi' });
     }
 
-    // Gunakan CONVERT_TZ untuk waktu yang konsisten
+    // Gunakan NOW() yang sudah timezone-aware dari pool connection
     const [result] = await db.query(
-      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CONVERT_TZ(NOW(), "+00:00", "+07:00"))',
+      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
       [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId]
     );
 
@@ -457,9 +452,9 @@ app.put('/api/tickets/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tiket tidak ditemukan' });
     }
 
-    // Gunakan CONVERT_TZ untuk set timezone ke WIB (UTC+7)
+    // Gunakan NOW() yang sudah timezone-aware
     await db.query(
-      'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = CONVERT_TZ(NOW(), "+00:00", "+07:00") WHERE id = ?',
+      'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = NOW() WHERE id = ?',
       [category, subcategory, status, update_progres, user.userId, id]
     );
 
@@ -625,6 +620,26 @@ app.delete('/api/technicians/:nik', async (req, res) => {
     res.status(500).json({ error: 'Gagal menghapus teknisi' });
   }
 });
+
+// Helper function untuk format datetime ke WIB untuk Excel
+function formatDateTimeForExcel(datetime) {
+  if (!datetime) return '';
+  const date = new Date(datetime);
+  if (isNaN(date.getTime())) return datetime;
+  
+  // Format: DD/MM/YYYY HH:mm WIB
+  const options = {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  };
+  
+  return new Intl.DateTimeFormat('id-ID', options).format(date) + ' WIB';
+}
 
 // Export untuk Vercel
 module.exports = app;
