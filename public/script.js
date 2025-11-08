@@ -893,27 +893,50 @@ function generateReport() {
 async function exportClosedTickets() {
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
+    
+    // Bangun URL dengan cache-buster
     let url = `${API_URL_TICKETS}/closed/export`;
-    const separator = url.includes('?') ? '&' : '?'; // Cek apakah sudah ada parameter '?'
-    url += `${separator}_t=${Date.now()}`; // Tambahkan timestamp unik
+    const separator = url.includes('?') ? '&' : '?';
+    url += `${separator}_t=${Date.now()}`;
 
-        if (startDate && endDate) {
+    if (startDate && endDate) {
         url += `&startDate=${startDate}&endDate=${endDate}`;
-        }
+    }
+
     try {
+        // Gunakan metode fetch untuk mendapatkan blob
         const response = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` } });
+        
         if (!response.ok) {
-            throw new Error('Gagal mengekspor data. Tidak ada data pada rentang tanggal ini.');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Gagal mengekspor data.');
         }
 
         const blob = await response.blob();
+        
+        // Buat URL sementara untuk blob
         const downloadUrl = window.URL.createObjectURL(blob);
+        
+        // Buat elemen <a> secara dinamis untuk memicu unduhan
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `Laporan Tiket Closed - ${new Date().toISOString().slice(0,10)}.csv`;
+        
+        // Ambil nama file dari header 'Content-Disposition'
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'Laporan_Tiket_Closed.xlsx'; // Nama default
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch.length === 2) filename = filenameMatch[1];
+        }
+        
+        a.download = filename;
+        
+        // Tambahkan ke DOM, klik, lalu hapus
         document.body.appendChild(a);
         a.click();
         a.remove();
+        
+        // Bersihkan URL objek untuk membebaskan memori
         window.URL.revokeObjectURL(downloadUrl);
 
     } catch (error) {
