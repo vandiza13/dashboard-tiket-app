@@ -537,31 +537,29 @@ function filterByCategory(category, clickedTab) {
 }
 
 function applyFiltersAndRender(page = 1, useBackendPagination = false) {
-    let filteredTickets = ticketsCache;
+    let dataSource = ticketsCache;
+    if (currentView === 'closed') {
+        dataSource = allClosedTicketsCache;
+    }
+
     const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    
+    let filteredTickets = dataSource;
     let isFiltered = false;
 
-    // --- Penyesuaian untuk search global pada tiket closed ---
-    const isClosedTab = (currentView === 'closed');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    if (isClosedTab && searchTerm) {
-        // Gunakan cache semua tiket closed untuk pencarian global
-        filteredTickets = allClosedTicketsCache.filter(ticket =>
+    if (currentCategoryFilter !== 'Semua') {
+        filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
+        isFiltered = true;
+    }
+
+    if (searchTerm) {
+        filteredTickets = filteredTickets.filter(ticket =>
             Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
         );
         isFiltered = true;
-    } else {
-        if (currentCategoryFilter !== 'Semua') {
-            filteredTickets = filteredTickets.filter(ticket => ticket.category === currentCategoryFilter);
-            isFiltered = true;
-        }
-        if (searchInput && searchTerm && !isClosedTab) {
-            filteredTickets = filteredTickets.filter(ticket =>
-                Object.values(ticket).some(val => String(val).toLowerCase().includes(searchTerm))
-            );
-            isFiltered = true;
-        }
     }
+
     filteredTicketsCache = filteredTickets;
     currentPage = page;
 
