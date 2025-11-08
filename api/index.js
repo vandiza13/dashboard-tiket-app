@@ -277,16 +277,16 @@ app.get('/api/tickets/closed', async (req, res) => {
     `;
 
     if (req.query.startDate && req.query.endDate) {
-      query += ` AND DATE(t.last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
+      query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
 
-    query += ` GROUP BY t.id ORDER BY t.last_update_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [tickets] = await db.query(query);
     
     let countQuery = "SELECT COUNT(*) as total FROM tickets WHERE status = 'CLOSED'";
     if (req.query.startDate && req.query.endDate) {
-      countQuery += ` AND DATE(last_update_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
+      countQuery += ` AND DATE(tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
     }
     const [totalResult] = await db.query(countQuery);
     const total = totalResult[0].total;
