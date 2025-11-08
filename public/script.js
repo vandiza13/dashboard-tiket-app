@@ -149,7 +149,6 @@ async function router() {
             dateFilterContainer.style.display = 'flex'; 
             await fetchAndRenderTickets('running');
             break;
-            // Di dalam fungsi router()
         case '#closed':
             currentView = 'closed';
             pageTitle.innerText = 'Tiket Closed';
@@ -262,7 +261,7 @@ async function fetchAndRenderProfile() {
         const response = await fetch(`/api/profile`, { headers: authHeaders });
         if (response.status === 401 || response.status === 403) { logout(); return; }
         const user = await response.json();
-        contentArea.innerHTML = `<div class="row"><div class="col-md-6"><div class="card"><div class="card-header">Detail Akun</div><div class="card-body"><p><strong>Username:</strong> ${user.username}</p><p><strong>Peran (Role):</strong> ${user.role}</p><p><strong>Tanggal Bergabung:</strong> ${formatDateTime(user.created_at)}</p></div></div></div><div class="col-md-6 mt-3 mt-md-0"><div class="card"><div class="card-header">Ganti Password</div><div class="card-body"><form id="changePasswordForm"><div class="mb-3"><label for="currentPassword" class="form-label">Password Saat Ini</label><input type="password" class="form-control" id="currentPassword" required></div><div class="mb-3"><label for="newPassword" class="form-label">Password Baru</label><input type="password" class="form-control" id="newPassword" required></div><div class="mb-3"><label for="confirmPassword" class="form-label">Konfirmasi Password Baru</label><input type="password" class="form-control" id="confirmPassword" required></div><button type="submit" class="btn btn-primary">Simpan Password</button></form><div id="password-message" class="mt-3"></div></div></div></div></div>`;
+        contentArea.innerHTML = `<div class="row"><div class="col-md-6"><div class="card"><div class="card-header">Detail Akun</div><div class="card-body"><p><strong>Username:</strong> ${user.username}</p><p><strong>Peran (Role):</strong> ${user.role}</p><p><strong>Tanggal Bergabung:</strong> ${formatDateTimeWIB(user.created_at)}</p></div></div></div><div class="col-md-6 mt-3 mt-md-0"><div class="card"><div class="card-header">Ganti Password</div><div class="card-body"><form id="changePasswordForm"><div class="mb-3"><label for="currentPassword" class="form-label">Password Saat Ini</label><input type="password" class="form-control" id="currentPassword" required></div><div class="mb-3"><label for="newPassword" class="form-label">Password Baru</label><input type="password" class="form-control" id="newPassword" required></div><div class="mb-3"><label for="confirmPassword" class="form-label">Konfirmasi Password Baru</label><input type="password" class="form-control" id="confirmPassword" required></div><button type="submit" class="btn btn-primary">Simpan Password</button></form><div id="password-message" class="mt-3"></div></div></div></div></div>`;
         document.getElementById('changePasswordForm').addEventListener('submit', handleChangePassword);
     } catch (error) { contentArea.innerHTML = `<p class="text-danger">Gagal memuat data profil.</p>`; }
 }
@@ -590,7 +589,7 @@ function renderTable(ticketsToRender, page = 1, useBackendPagination = false) {
         } else {
             actionButtons = historyButton;
         }
-        rowsHtml += `<tr><td>${startIdx + index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTime(ticket.tiket_time)}</td><td>${formatDateTime(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
+        rowsHtml += `<tr><td>${startIdx + index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTimeWIB(ticket.tiket_time)}</td><td>${formatDateTimeWIB(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
     });
     tbody.innerHTML = rowsHtml;
 }
@@ -830,7 +829,7 @@ async function handleChangePassword(event) {
     }
 }
 
-// --- GANTI FUNGSI INI ---
+
 async function showHistory(ticketId, displayId) {
     const modalBody = document.getElementById('historyModalBody');
     const modalTitle = document.getElementById('historyModalTitle');
@@ -857,7 +856,7 @@ async function showHistory(ticketId, displayId) {
         } else {
             let html = '<ul class="list-group">';
             history.forEach(item => {
-                html += `<li class="list-group-item"><div><strong>Waktu:</strong> ${formatDateTime(item.change_timestamp)}</div><div><strong>Perubahan:</strong> ${item.change_details || '-'}</div><div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div></li>`;
+                html += `<li class="list-group-item"><div><strong>Waktu:</strong> ${formatDateTimeWIB(item.change_timestamp)}</div><div><div><strong>Perubahan:</strong> ${item.change_details || '-'}</div><div><strong>Diupdate oleh:</strong> ${item.changed_by || '-'}</div></li>`;
             });
             html += '</ul>';
             modalBody.innerHTML = html;
@@ -930,7 +929,7 @@ function generateReport() {
     }
     let t = "";
     ticketsToReport.forEach((ti, i) => {
-        const it = `${i + 1}. ${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTime(ti.tiket_time)} WIB\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.technician_details||'NULL'}\nstatus          : ${ti.status||''}`;
+        const it = `${i + 1}. ${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTimeWIB(ti.tiket_time)} WIB\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.technician_details||'NULL'}\nstatus          : ${ti.status||''}`;
         t += it;
         if (i < ticketsToReport.length - 1) { t += "\n\n"; }
     });
@@ -950,21 +949,23 @@ function logout() {
     window.location.href = './login.html';
 }
 
-function formatDateTime(s) {
-  if (!s) return '';
-  const date = new Date(s);
-  if (isNaN(date.getTime())) return s;
-  const options = {
-    timeZone: 'Asia/Jakarta',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  };
-  
-  return new Intl.DateTimeFormat('id-ID', options).format(date);
+// --- FUNGSI PEMFORMAT WIB YANG BENAR ---
+function formatDateTimeWIB(s) {
+    if (!s) return '';
+    const date = new Date(s);
+    if (isNaN(date.getTime())) return s;
+    
+    const options = {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    };
+    
+    return new Intl.DateTimeFormat('id-ID', options).format(date);
 }
 
 function getStatusBadge(s) {
