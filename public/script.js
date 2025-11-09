@@ -561,9 +561,21 @@ function renderTable(ticketsToRender, page = 1, useBackendPagination = false) {
         } else {
             actionButtons = historyButton;
         }
-        rowsHtml += `<tr><td>${startIdx + index + 1}</td><td>${ticket.id_tiket || ''}</td><td>${ticket.subcategory || ''}</td><td>${formatDateTimeWIB(ticket.tiket_time)}</td><td>${formatDateTimeWIB(ticket.last_update_time)}</td><td>${ticket.deskripsi || ''}</td><td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status || ''}</span></td><td>${ticket.technician_details || ''}</td><td>${ticket.update_progres || ''}</td><td>${ticket.updated_by || ''}</td><td>${actionButtons}</td></tr>`;
-    });
-    tbody.innerHTML = rowsHtml;
+        rowsHtml += `<tr>
+          <td>${startIdx + index + 1}</td>
+          <td>${escapeHTML(ticket.id_tiket)}</td>
+          <td>${escapeHTML(ticket.subcategory)}</td>
+          <td>${formatDateTimeWIB(ticket.tiket_time)}</td>
+          <td>${formatDateTimeWIB(ticket.last_update_time)}</td>
+          <td>${escapeHTML(ticket.deskripsi)}</td>
+          <td><span class="badge ${getStatusBadge(ticket.status)}">${escapeHTML(ticket.status)}</span></td>
+          <td>${escapeHTML(ticket.technician_details)}</td>
+          <td>${escapeHTML(ticket.update_progres)}</td>
+          <td>${escapeHTML(ticket.updated_by)}</td>
+          <td>${actionButtons}</td> 
+        </tr>`;
+        });
+        tbody.innerHTML = rowsHtml;
 }
 
 function changePage(page) {
@@ -914,6 +926,24 @@ function logout() {
     localStorage.removeItem('userRole');
     window.location.href = './login.html';
 }
+
+// --- FUNGSI BARU untuk Membersihkan string dari karakter HTML berbahaya untuk mencegah XSS---
+/**
+ * 
+ * @param {string} str String yang akan di-sanitize.
+ * @returns {string} String yang aman untuk ditampilkan di HTML.
+ */
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return str.toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+// ------------------------------------
+
 
 // --- FUNGSI PEMFORMAT WIB YANG DIPERBAIKI ---
 

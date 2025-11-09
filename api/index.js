@@ -199,6 +199,8 @@ app.get('/api/tickets/running', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    let params = [];
+
     let query = `
       SELECT 
         t.id, 
@@ -223,12 +225,14 @@ app.get('/api/tickets/running', async (req, res) => {
     `;
 
     if (req.query.startDate && req.query.endDate) {
-      query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
+      query += ` AND DATE(t.tiket_time) BETWEEN ? AND ?`;
+      params.push(req.query.startDate, req.query.endDate);
     }
 
-    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
+      query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
 
-    const [tickets] = await db.query(query);
+    const [tickets] = await db.query(query, params);
     const [totalResult] = await db.query("SELECT COUNT(*) as total FROM tickets WHERE status IN ('OPEN', 'SC')");
     const total = totalResult[0].total;
 
@@ -252,6 +256,8 @@ app.get('/api/tickets/closed', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
+
+    let queryParams = [];
 
     let query = `
       SELECT 
@@ -277,18 +283,22 @@ app.get('/api/tickets/closed', async (req, res) => {
     `;
 
     if (req.query.startDate && req.query.endDate) {
-      query += ` AND DATE(t.tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
+      query += ` AND DATE(t.tiket_time) BETWEEN ? AND ?`;
+      queryParams.push(req.query.startDate, req.query.endDate);
     }
 
-    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ${limit} OFFSET ${offset}`;
+    query += ` GROUP BY t.id ORDER BY t.tiket_time DESC LIMIT ? OFFSET ?`;
+    queryParams.push(limit, offset);
 
-    const [tickets] = await db.query(query);
+    const [tickets] = await db.query(query, queryParams);
     
     let countQuery = "SELECT COUNT(*) as total FROM tickets WHERE status = 'CLOSED'";
+    let countParams = []; 
     if (req.query.startDate && req.query.endDate) {
-      countQuery += ` AND DATE(tiket_time) BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`;
+      countQuery += ` AND DATE(tiket_time) BETWEEN ? AND ?`;
+      countParams.push(req.query.startDate, req.query.endDate);
     }
-    const [totalResult] = await db.query(countQuery);
+    const [totalResult] = await db.query(countQuery, countParams);
     const total = totalResult[0].total;
 
     res.json({
