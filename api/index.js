@@ -433,9 +433,9 @@ app.post('/api/tickets', async (req, res) => {
 
     // Gunakan NOW() yang sudah timezone-aware dari pool connection
     const [result] = await db.query(
-      'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-      [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId]
-    );
+    'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+    [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId]
+  );
 
     await db.query(
       'INSERT INTO ticket_history (ticket_id, change_details, changed_by) VALUES (?, ?, ?)',
@@ -443,10 +443,16 @@ app.post('/api/tickets', async (req, res) => {
     );
 
     res.status(201).json({ message: 'Tiket berhasil ditambahkan', ticketId: result.insertId });
-  } catch (error) {
-    console.error('Create ticket error:', error);
-    res.status(500).json({ error: 'Gagal menambahkan tiket' });
+
+    } catch (error) {
+  // --- TAMBAHKAN PENGECEKAN INI ---
+  if (error.code === 'ER_DUP_ENTRY') {
+    return res.status(400).json({ error: 'ID Tiket sudah ada dalam Dashboard' });
   }
+  // ---------------------------------
+  console.error('Create ticket error:', error);
+  res.status(500).json({ error: 'Terjadi kesalahan server saat menambahkan tiket' });
+}
 });
 
 app.put('/api/tickets/:id', async (req, res) => {
