@@ -23,26 +23,36 @@ app.get('/api', (req, res) => {
 });
 
 // ==================== AUTH ROUTES ====================
+const { protect, restrictTo } = require('./_utils/auth');
 
 app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username dan password harus diisi' });
-  }
-  
   try {
+    const adminUser = await protect(req);
+    restrictTo(adminUser, ['Admin']);
+
+    const { username, password, role } = req.body; 
+    if (!username || !password || !role) {
+      return res.status(400).json({ error: 'Username, password, dan role harus diisi' });
+    }
+    
+    if (!['User', 'View', 'Admin'].includes(role)) {
+      return res.status(400).json({ error: 'Role tidak valid' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const role = 'User';
     await db.query(
       'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
       [username, hashedPassword, role]
     );
-    res.status(201).json({ message: 'Registrasi berhasil' });
+    res.status(201).json({ message: 'Pengguna baru berhasil dibuat' });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Username sudah terdaftar' });
     }
     console.error('Register error:', error);
+    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
+      return res.status(403).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Terjadi kesalahan server' });
   }
 });
@@ -123,6 +133,76 @@ app.put('/api/profile/change-password', async (req, res) => {
     res.status(401).json({ error: error.message });
   }
 });
+
+// ==================== USER MANAGEMENT (ADMIN) ROUTES ====================
+
+// GET: Ambil semua pengguna (Hanya Admin)
+app.get('/api/users', async (req, res) => {
+  try {
+    const adminUser = await protect(req);
+    restrictTo(adminUser, ['Admin']);
+
+    // Ambil semua pengguna KECUALI admin yang sedang login
+    const [users] = await db.query(
+      "SELECT id, username, role, created_at FROM users WHERE id != ? ORDER BY username ASC",
+      [adminUser.userId]
+    );
+    res.json(users);
+  } catch (error) {
+    console.error('Get users error:', error);
+    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
+      return res.status(403).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Gagal mengambil data pengguna' });
+  }
+});
+
+// PUT: Update role pengguna (Hanya Admin)
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const adminUser = await protect(req);
+    restrictTo(adminUser, ['Admin']);
+
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !['User', 'View', 'Admin'].includes(role)) {
+      return res.status(400).json({ error: 'Role tidak valid' });
+    }
+
+    await db.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    res.json({ message: 'Role pengguna berhasil diperbarui' });
+  } catch (error) {
+    console.error('Update user role error:', error);
+    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
+      return res.status(403).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Gagal memperbarui role pengguna' });
+  }
+});
+
+// DELETE: Hapus pengguna (Hanya Admin)
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const adminUser = await protect(req);
+    restrictTo(adminUser, ['Admin']);
+
+    const { id } = req.params;
+
+    // TODO: Anda mungkin perlu menangani tiket/data lain yang terkait dengan user ini
+    // (misalnya, set 'created_by_user_id' di tiket menjadi NULL atau 'deleted_user')
+
+    await db.query('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ message: 'Pengguna berhasil dihapus' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
+      return res.status(403).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Gagal menghapus pengguna' });
+  }
+});
+
 
 // ==================== STATS ROUTES ====================
 

@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('addTechnicianForm').addEventListener('submit', handleAddTechnician);
     document.getElementById('save-edit-tech-btn').addEventListener('click', handleEditTechnicianSubmit);
+    document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
     document.getElementById('category').addEventListener('change', updateSubcategoryOptions);
     document.getElementById('update_category').addEventListener('change', updateSubcategoryOptions);
 
@@ -105,7 +106,17 @@ window.addEventListener('hashchange', router);
 
 // --- FUNGSI UTAMA & NAVIGASI ---
 
-function applyRoles() { if (localStorage.getItem('userRole') === 'View') { document.getElementById('add-ticket-btn').style.display = 'none'; } }
+function applyRoles() { 
+  const userRole = localStorage.getItem('userRole');
+  if (userRole === 'View') { 
+    document.getElementById('add-ticket-btn').style.display = 'none'; 
+  }
+  // --- TAMBAHKAN INI ---
+  if (userRole === 'Admin') {
+    document.getElementById('nav-users-li').style.display = 'block';
+  }
+  // ---------------------
+}
 
 async function router() {
     const hash = window.location.hash || '#running';
@@ -691,6 +702,114 @@ async function handleDeleteTechnician(nik) {
         alert('Gagal hapus.');
     }
 }
+
+
+// --- FUNGSI MANAJEMEN PENGGUNA BARU ---
+
+async function fetchUsers() {
+  const tbody = document.getElementById('users-table-body');
+  tbody.innerHTML = `<tr><td colspan="4" class="text-center">Memuat data pengguna...</td></tr>`;
+  try {
+    const response = await fetch('/api/users', { headers: authHeaders });
+    if (!response.ok) throw new Error('Gagal mengambil data');
+    const users = await response.json();
+    renderUsersTable(users);
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Gagal memuat data pengguna.</td></tr>`;
+  }
+}
+
+function renderUsersTable(users) {
+  const tbody = document.getElementById('users-table-body');
+  tbody.innerHTML = '';
+  if (users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center">Tidak ada pengguna lain.</td></tr>`;
+    return;
+  }
+
+  users.forEach(user => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${escapeHTML(user.username)}</td>
+        <td>
+          <select class="form-select form-select-sm" onchange="handleEditUserRole(${user.id}, this.value)">
+            <option value="User" ${user.role === 'User' ? 'selected' : ''}>User</option>
+            <option value="View" ${user.role === 'View' ? 'selected' : ''}>View</option>
+            <option value="Admin" ${user.role === 'Admin' ? 'selected' : ''}>Admin</option>
+          </select>
+        </td>
+        <td>${formatDateTimeWIB(user.created_at)}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteUser(${user.id})">
+            <i class="bi bi-trash-fill"></i> Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function handleEditUserRole(id, newRole) {
+  if (!confirm(`Yakin ingin mengubah role pengguna ini menjadi ${newRole}?`)) {
+    fetchUsers(); // Reset dropdown jika dibatalkan
+    return;
+  }
+  try {
+    const response = await fetch(`/api/users/${id}`, {
+      method: 'PUT',
+      headers: authHeaders,
+      body: JSON.stringify({ role: newRole })
+    });
+    if (!response.ok) throw new Error('Gagal mengubah role');
+  } catch (error) {
+    alert('Gagal: ' + error.message);
+    fetchUsers(); // Muat ulang tabel jika gagal
+  }
+}
+
+async function handleDeleteUser(id) {
+  if (!confirm('Yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) {
+    return;
+  }
+  try {
+    const response = await fetch(`/api/users/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders
+    });
+    if (!response.ok) throw new Error('Gagal menghapus pengguna');
+    fetchUsers(); // Muat ulang tabel setelah sukses
+  } catch (error) {
+    alert('Gagal: ' + error.message);
+  }
+}
+
+async function handleAddUser(event) {
+  event.preventDefault();
+  const messageDiv = document.getElementById('addUserMessage');
+  messageDiv.innerHTML = '';
+
+  const username = document.getElementById('new_username').value;
+  const password = document.getElementById('new_password').value;
+  const role = document.getElementById('new_role').value;
+
+  try {
+    const response = await fetch('/api/register', { // Kita gunakan ulang API register yang sudah diamankan
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ username, password, role })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+
+    messageDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+    document.getElementById('addUserForm').reset();
+    fetchUsers(); // Muat ulang tabel
+  } catch (error) {
+    messageDiv.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+  }
+}
+
+// --- AKHIR FUNGSI MANAJEMEN PENGGUNA ---
 
 async function handleFormSubmit() {
     const d = { category: document.getElementById('category').value, subcategory: document.getElementById('subcategory').value, id_tiket: document.getElementById('id_tiket').value, tiket_time: document.getElementById('tiket_time').value, deskripsi: document.getElementById('deskripsi').value };
