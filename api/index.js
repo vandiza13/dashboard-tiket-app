@@ -23,7 +23,6 @@ app.get('/api', (req, res) => {
 });
 
 // ==================== AUTH ROUTES ====================
-const { protect, restrictTo } = require('./_utils/auth');
 
 app.post('/api/register', async (req, res) => {
   try {
