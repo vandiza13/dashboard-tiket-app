@@ -18,37 +18,148 @@ body {
   flex: 1; /* Memastikan wrapper mengisi ruang yang tersedia */
 }
 
-/* ==================== SIDEBAR STYLES ==================== */
+/* ==================== SIDEBAR STYLES (ELEGANT REDESIGN) ==================== */
 
 #sidebar {
-  width: 250px;
+  width: 260px;
   height: 100vh;
-  background-color: #111827;
-  color: white;
-  transition: transform 0.3s ease-in-out; /* Gunakan transform untuk animasi yang lebih halus */
+  /* Background Gradient Gelap Mewah */
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  color: #94a3b8; /* Warna teks abu-abu lembut (Slate-400) */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 1020; /* Pastikan sidebar di atas overlay */
-  border-right: 1px solid #e5e7eb;
+  z-index: 1020;
+  /* Border halus dan bayangan */
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Judul Dashboard (Brand) */
+#sidebar h4 {
+  color: #f8fafc;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 1rem 0;
+  margin-bottom: 2rem !important;
+  font-size: 1.25rem;
+  /* Efek Teks Gradient */
+  background: linear-gradient(to right, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+}
+
+/* Garis pemisah halus di bawah judul */
+#sidebar h4::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background: #3b82f6;
+  border-radius: 10px;
+}
+
+/* Container Link Navigasi */
+#sidebar .nav {
+  gap: 8px; /* Jarak antar item menu */
+}
+
+/* Style Link Navigasi */
+#sidebar .nav-link {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px; /* Sudut membulat */
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  margin: 0 10px; /* Memberi jarak dari tepi sidebar */
+}
+
+/* Ikon Navigasi */
+#sidebar .nav-link i {
+  font-size: 1.3rem;
+  min-width: 24px;
+  text-align: center;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: #64748b;
+}
+
+/* Efek Hover */
+#sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+  transform: translateX(4px); /* Geser sedikit ke kanan */
+}
+
+#sidebar .nav-link:hover i {
+  transform: scale(1.15) rotate(-5deg); /* Animasi ikon */
+  color: #93c5fd;
+}
+
+/* State Aktif (Menu yang sedang dipilih) */
+#sidebar .nav-link.active {
+  /* Background Gradient Halus */
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+  color: #60a5fa; /* Biru terang */
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  font-weight: 600;
+}
+
+#sidebar .nav-link.active i {
+  color: #60a5fa;
+}
+
+/* Indikator aktif di sebelah kiri */
+#sidebar .nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 4px;
+  background-color: #60a5fa;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Bagian Bawah (Footer Sidebar) */
+#sidebar .mt-auto {
+  background: rgba(0, 0, 0, 0.2); /* Sedikit lebih gelap */
+  margin: 0 -16px -16px -16px; /* Memenuhi lebar sidebar */
+  padding: 20px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Garis pemisah (HR) */
+#sidebar hr.text-secondary {
+  display: none; /* Sembunyikan HR bawaan bootstrap karena sudah pakai background footer */
 }
 
 /* State: Desktop - Sidebar Tersembunyi */
 #sidebar.collapsed {
-  /* Di desktop, kita menyembunyikan sidebar dengan mendorongnya ke kiri */
   transform: translateX(-100%);
 }
 
 /* State: Mobile - Sidebar Terlihat */
 @media (max-width: 991.98px) {
   #sidebar {
-    /* Di mobile, sidebar disembunyikan secara default */
     transform: translateX(-100%);
+    width: 280px; /* Sedikit lebih lebar di mobile agar nyaman disentuh */
   }
   #sidebar.show {
-    /* Kelas 'show' digunakan untuk menampilkannya di mobile */
     transform: translateX(0);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
   }
 }
 
