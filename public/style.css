@@ -314,107 +314,217 @@ body {
 #techniciansModal .table th:nth-child(5),
 #techniciansModal .table td:nth-child(5) { width: 15%; }
 
-/* ==================== STATISTICS STYLES ==================== */
 
-/* Statistik summary cards */
+/* ==================== STATISTICS STYLES (MODERN REDESIGN) ==================== */
+
+/* Container Adjustment */
+#stats-summary-container {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Judul Section */
+.stats-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.25rem;
+  position: relative;
+  padding-left: 12px;
+}
+
+.stats-section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 4px;
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+/* Statistik Summary Cards */
 .stats-summary-card {
-  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
-  color: #fff;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 8px 0 rgb(59 130 246 / 10%);
-  padding: 1.25rem 1rem;
+  background: #fff;
+  border-radius: 1rem; /* Sudut lebih membulat (16px) */
+  padding: 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  min-height: 90px;
-  transition: box-shadow 0.2s;
-  margin-bottom: 16px;
-}
-.stats-summary-card .icon {
-  font-size: 2.2rem;
-  opacity: 0.8;
-}
-.stats-summary-card .stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.1rem;
-}
-.stats-summary-card .stat-label {
-  font-size: 1rem;
-  opacity: 0.85;
-  margin-bottom: 0;
+  gap: 1.25rem;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  z-index: 1;
 }
 
-/* Statistik summary row agar sejajar */
+/* Efek Hover pada Card */
+.stats-summary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Background Gradient Halus untuk setiap tipe card */
+/* Kita override class bootstrap bg-gradient-* agar lebih custom */
+
+.stats-summary-card.bg-gradient-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.stats-summary-card.bg-gradient-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.stats-summary-card.bg-gradient-info {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+}
+
+.stats-summary-card.bg-gradient-secondary {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: white;
+}
+
+/* Dekorasi Circle di background card */
+.stats-summary-card::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: -1;
+}
+
+.stats-summary-card .icon {
+  font-size: 2.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.stats-summary-card .stat-value {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stats-summary-card .stat-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  opacity: 0.9;
+  letter-spacing: 0.5px;
+}
+
+/* Layout Grid untuk Summary */
 #stats-summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 24px; /* Jarak antar card lebih lega */
+  margin-bottom: 32px;
 }
 
-#stats-summary-row > .col-md-3,
+#stats-summary-row > .col-md-3, 
 #stats-summary-row > .col-6 {
-  flex: 1 1 0;
-  min-width: 200px;
-  max-width: 100%;
-  display: flex;
-  margin-top: 0 !important;
+  padding: 0; /* Reset padding bootstrap col karena kita pakai gap flexbox */
+  flex: 1 1 250px; /* Responsive width */
 }
 
-.stats-summary-card {
-  width: 100%;
-  min-height: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 0;
+/* Styling Container Chart & List (Card Putih Besar) */
+.card.h-100, .card.stats-chart-card {
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.3s ease;
+  background: #ffffff;
 }
 
-/* Responsive fix for summary card */
-@media (max-width: 991.98px) {
-  #stats-summary-row {
-    flex-direction: column;
-    gap: 12px;
-  }
-  #stats-summary-row > .col-md-3,
-  #stats-summary-row > .col-6 {
-    min-width: 0;
-    width: 100%;
-    flex: 1 1 100%;
-    margin-bottom: 0;
-  }
+.card.h-100:hover, .card.stats-chart-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
 }
 
-/* Statistik chart card */
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.25rem 1.5rem;
+}
+
+/* List Group Styling (Daftar Kategori) */
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1rem 1.5rem;
+  transition: background-color 0.2s;
+  color: #475569;
+  font-weight: 500;
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+.list-group-item:hover {
+  background-color: #f8fafc;
+  color: #3b82f6;
+}
+
+.list-group-item .badge {
+  font-size: 0.85rem;
+  padding: 0.5em 0.8em;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Chart Canvas Area */
 #stats-trend-chart {
   width: 100% !important;
-  min-height: 260px !important;
-  max-width: 100%;
-  display: block;
+  min-height: 300px !important;
+  padding: 10px;
 }
 
-/* Statistik judul section */
-.stats-section-title {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: #2563eb;
-  letter-spacing: 0.01em;
-}
-
-/* Responsive for summary */
+/* Responsive Fixes */
 @media (max-width: 767.98px) {
   .stats-summary-card {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 1rem 0.75rem;
-    margin-bottom: 12px;
+    padding: 1.25rem;
+    min-height: 100px;
   }
+  
   .stats-summary-card .icon {
-    margin-bottom: 0.5rem;
+    width: 45px;
+    height: 45px;
+    font-size: 1.8rem;
+  }
+  
+  .stats-summary-card .stat-value {
+    font-size: 1.75rem;
+  }
+  
+  #stats-summary-row {
+    gap: 16px;
   }
 }
+
 
 /* ==================== FOOTER STYLES ==================== */
 
