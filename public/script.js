@@ -1015,130 +1015,23 @@ async function exportClosedTickets() {
     }
 }
 
-// --- public/script.js ---
-
-async function generateReport() {
-    const btn = document.querySelector('button[onclick="generateReport()"]');
-    const originalText = btn.innerText;
-    btn.innerText = "Memuat Data...";
-    btn.disabled = true;
-
-    try {
-        // 1. Ambil Data Terbaru dari Server (Limit diperbesar agar semua terambil)
-        const [resRunning, resClosed] = await Promise.all([
-            fetch(`${API_URL_TICKETS}/running?limit=2000`, { headers: authHeaders }),
-            fetch(`${API_URL_TICKETS}/closed?limit=2000`, { headers: authHeaders })
-        ]);
-
-        const dataRunning = await resRunning.json();
-        const dataClosed = await resClosed.json();
-
-        let allRunning = dataRunning.tickets || [];
-        let allClosed = dataClosed.tickets || [];
-
-        // 2. Filter Kategori
-        if (currentCategoryFilter !== 'Semua') {
-            allRunning = allRunning.filter(t => t.category === currentCategoryFilter);
-            allClosed = allClosed.filter(t => t.category === currentCategoryFilter);
-        }
-
-        // 3. Filter Khusus Laporan Harian
-        
-        // A. Tiket Running: Semua yang masih aktif
-        const reportRunning = allRunning;
-
-        // B. Tiket Closed: HANYA yang last_update_time == HARI INI (Zona Waktu Jakarta)
-        const reportClosed = allClosed.filter(t => isToday(t.last_update_time));
-
-        // Cek jika kosong
-        if (reportRunning.length === 0 && reportClosed.length === 0) {
-            alert("Laporan Nihil: Tidak ada tiket Running maupun tiket Closed hari ini.");
-            btn.innerText = originalText;
-            btn.disabled = false;
-            return;
-        }
-
-        // 4. Format Header Laporan
-        const now = new Date();
-        const optionsDate = { timeZone: 'Asia/Jakarta', day: '2-digit', month: '2-digit', year: 'numeric' };
-        const optionsTime = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false };
-        
-        const tanggal = new Intl.DateTimeFormat('id-ID', optionsDate).format(now).replace(/\//g, '-');
-        const jam = new Intl.DateTimeFormat('id-ID', optionsTime).format(now).replace(':', '.');
-        
-        const totalTiket = reportRunning.length + reportClosed.length;
-
-        // 5. Susun Teks Laporan
-        let t = `*Monitoring Tiket ${currentCategoryFilter.toUpperCase()} Area Bekasi*\n`;
-        t += `*Tanggal : ${tanggal}\n`;
-        t += `*Jam : ${jam}\n`;
-        t += `================================\n`;
-
-        // Summary
-        t += `*).Jumlah Tiket Total  : ${totalTiket} Tiket*\n`;
-        t += `- Sisa Tiket Running    : ${reportRunning.length} tiket\n`;
-        t += `- Tiket Closed Hari Ini : ${reportClosed.length} tiket\n\n`;
-
-        // List Closed (Hanya Hari Ini)
-        if (reportClosed.length > 0) {
-            t += `*)Closed  : ${reportClosed.length} tiket\n`;
-            reportClosed.forEach((ti, i) => {
-                t += `${i + 1}.✅${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
-                t += `RCA : ${ti.update_progres || 'Done'}\n`;
-                t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
-            });
-        } else {
-            t += `*)Closed  : 0 tiket\n\n`;
-        }
-
-        // List Running / Open
-        if (reportRunning.length > 0) {
-            t += `*).ON Progres    : ${reportRunning.length} tiket\n`;
-            reportRunning.forEach((ti, i) => {
-                t += `${i + 1}.❌${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
-                t += `Update : ${ti.update_progres || 'Belum ada update'}\n`;
-                t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
-            });
-        } else {
-            t += `*).ON Progres    : 0 tiket\n`;
-        }
-
-        t += `----------------------------------------\n`;
-
-        document.getElementById('report-textarea').value = t;
-        reportModal.show();
-
-    } catch (error) {
-        console.error("Error generating report:", error);
-        alert("Gagal menyusun laporan: " + error.message);
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
+function generateReport() {
+    let ticketsToReport = ticketsCache;
+    if (currentCategoryFilter !== 'Semua') {
+        ticketsToReport = ticketsToReport.filter(ticket => ticket.category === currentCategoryFilter);
     }
-}
-
-// --- FUNGSI HELPER PERBAIKAN: CEK TANGGAL DENGAN ZONA WAKTU JAKARTA ---
-function isToday(dateString) {
-    if (!dateString) return false;
-    
-    // Opsi format tanggal yang memaksa zona waktu Asia/Jakarta
-    const options = { 
-        timeZone: 'Asia/Jakarta', 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
-    };
-    
-    const dateCheck = new Date(dateString);
-    const dateNow = new Date();
-    
-    // Konversi kedua tanggal menjadi string "DD/MM/YYYY" berdasarkan zona waktu Jakarta
-    // Contoh hasil: "24/11/2025"
-    const strCheck = new Intl.DateTimeFormat('id-ID', options).format(dateCheck);
-    const strNow = new Intl.DateTimeFormat('id-ID', options).format(dateNow);
-    
-    // Bandingkan string tanggalnya saja
-    return strCheck === strNow;
+    if (ticketsToReport.length === 0) {
+        alert("Tidak ada data pada tab ini untuk dilaporkan.");
+        return;
+    }
+    let t = "";
+    ticketsToReport.forEach((ti, i) => {
+        const it = `${i + 1}. ${getStatusIcon(ti.status)}Fiber Cut CSR ## ${ti.deskripsi||''}\nTicket No.      : ${ti.id_tiket||''}\nTicket Time     : ${formatDateTimeWIB(ti.tiket_time)}\nUpdate          : ${ti.update_progres||''}\nTeknisi         : ${ti.technician_details||'NULL'}\nstatus          : ${ti.status||''}`;
+        t += it;
+        if (i < ticketsToReport.length - 1) { t += "\n\n"; }
+    });
+    document.getElementById('report-textarea').value = t;
+    reportModal.show();
 }
 
 function copyReportToClipboard() {
