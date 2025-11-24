@@ -373,10 +373,10 @@ button[onclick="generateReport()"] { background: linear-gradient(135deg, #06b6d4
 /* Modal Teknisi */
 /* Modal Teknisi - Adjusted Column Widths */
 #techniciansModal .table th:nth-child(1),
-#techniciansModal .table td:nth-child(1) { width: 15%; text-align: center; } /* NIK */
+#techniciansModal .table td:nth-child(1) { width: 16%; text-align: center; } /* NIK */
 
 #techniciansModal .table th:nth-child(2),
-#techniciansModal .table td:nth-child(2) { width: 28%; } /* Nama (Lebih Lebar) */
+#techniciansModal .table td:nth-child(2) { width: 27%; } /* Nama (Lebih Lebar) */
 
 #techniciansModal .table th:nth-child(3),
 #techniciansModal .table td:nth-child(3) { width: 22%; } /* No HP */
