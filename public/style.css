@@ -376,10 +376,10 @@ button[onclick="generateReport()"] { background: linear-gradient(135deg, #06b6d4
 #techniciansModal .table td:nth-child(1) { width: 15%; text-align: center; } /* NIK */
 
 #techniciansModal .table th:nth-child(2),
-#techniciansModal .table td:nth-child(2) { width: 30%; } /* Nama (Lebih Lebar) */
+#techniciansModal .table td:nth-child(2) { width: 28%; } /* Nama (Lebih Lebar) */
 
 #techniciansModal .table th:nth-child(3),
-#techniciansModal .table td:nth-child(3) { width: 20%; } /* No HP */
+#techniciansModal .table td:nth-child(3) { width: 22%; } /* No HP */
 
 #techniciansModal .table th:nth-child(4),
 #techniciansModal .table td:nth-child(4) { width: 15%; text-align: center; } /* Status */
