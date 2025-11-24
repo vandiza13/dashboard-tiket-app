@@ -254,7 +254,8 @@ app.get('/api/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Stats error:', error);
-    res.status(500).json({ error: 'Gagal mengambil statistik' });
+    // Tampilkan pesan error asli agar kita tahu salahnya di mana
+    res.status(500).json({ error: error.message }); 
   }
 });
 
