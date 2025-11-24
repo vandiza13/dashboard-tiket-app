@@ -17,6 +17,45 @@ body {
   flex: 1; /* Memastikan wrapper mengisi ruang yang tersedia */
 }
 
+/* Tombol Toggle Sidebar (Modern Premium) */
+#sidebar-toggle {
+  background: white;
+  border: none; /* Hapus border garis kasar */
+  color: #475569; /* Warna ikon abu-abu gelap */
+  width: 44px; /* Ukuran sedikit lebih besar agar nyaman diklik */
+  height: 44px;
+  border-radius: 12px; /* Sudut lebih membulat */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem; /* Ukuran ikon pas */
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Animasi mulus */
+  
+  /* Shadow modern yang memberikan efek "mengambang" */
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.07), 
+    0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Efek Hover (Saat kursor diarahkan) */
+#sidebar-toggle:hover {
+  background: #ffffff;
+  color: #3b82f6; /* Berubah jadi biru saat hover */
+  transform: translateY(-3px) scale(1.02); /* Naik sedikit ke atas */
+  box-shadow: 
+    0 10px 15px -3px rgba(59, 130, 246, 0.15), /* Shadow biru pudar */
+    0 4px 6px -2px rgba(59, 130, 246, 0.1);
+}
+
+/* Efek Active (Saat diklik) */
+#sidebar-toggle:active {
+  transform: translateY(1px) scale(0.95); /* Efek tekan ke dalam */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+
+
 /* ==================== SIDEBAR STYLES (ELEGANT REDESIGN) ==================== */
 
 #sidebar {
