@@ -1015,58 +1015,109 @@ async function exportClosedTickets() {
     }
 }
 
-function generateReport() {
-    let ticketsToReport = ticketsCache;
-    
-    if (currentCategoryFilter !== 'Semua') {
-        ticketsToReport = ticketsToReport.filter(ticket => ticket.category === currentCategoryFilter);
-    }
 
-    if (ticketsToReport.length === 0) {
-        alert("Tidak ada data pada tab ini untuk dilaporkan.");
-        return;
-    }
+async function generateReport() {
+    // Tampilkan loading state pada tombol (opsional, agar user tahu sedang proses)
+    const btn = document.querySelector('button[onclick="generateReport()"]');
+    const originalText = btn.innerText;
+    btn.innerText = "Memuat Data...";
+    btn.disabled = true;
 
-    const closedTickets = ticketsToReport.filter(t => t.status === 'CLOSED');
-    const openTickets = ticketsToReport.filter(t => t.status === 'OPEN' || t.status === 'SC');
+    try {
+        // 1. Ambil data Tiket Running (Status OPEN/SC) - Ambil banyak (limit 1000)
+        const resRunning = await fetch(`${API_URL_TICKETS}/running?limit=1000`, { headers: authHeaders });
+        const dataRunning = await resRunning.json();
+        let allRunning = dataRunning.tickets || [];
 
-    const now = new Date();
-    const optionsDate = { day: '2-digit', month: '2-digit', year: 'numeric' };
-    const tanggal = now.toLocaleDateString('id-ID', optionsDate).replace(/\//g, '-'); // Format: 24-11-2025
-    const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':'); // Format: 05:15
+        // 2. Ambil data Tiket Closed (Status CLOSED) - Ambil banyak (limit 1000)
+        const resClosed = await fetch(`${API_URL_TICKETS}/closed?limit=1000`, { headers: authHeaders });
+        const dataClosed = await resClosed.json();
+        let allClosed = dataClosed.tickets || [];
 
-    let t = `*Monitoring Tiket ${currentCategoryFilter.toUpperCase()} Area Bekasi*\n`;
-    t += `*Tanggal : ${tanggal}\n`;
-    t += `*Jam : ${jam}\n`;
-    t += `================================\n`;
-    
-    t += `*).Jumlah Tiket Total  : ${ticketsToReport.length} Tiket\n`;
-    t += `- Total Closed          : ${closedTickets.length} tiket\n`;
-    t += `- Total On Progress     : ${openTickets.length} tiket\n\n`;
+        // 3. Filter Data Sesuai Kategori yang Dipilih
+        if (currentCategoryFilter !== 'Semua') {
+            allRunning = allRunning.filter(t => t.category === currentCategoryFilter);
+            allClosed = allClosed.filter(t => t.category === currentCategoryFilter);
+        }
 
-    if (closedTickets.length > 0) {
-        t += `*)Closed  : ${closedTickets.length} tiket\n`;
-        closedTickets.forEach((ti, i) => {
-            t += `${i + 1}.✅${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
-            t += `RCA : ${ti.update_progres || 'No action'}\n`;
-            t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
+        // 4. Filter Khusus untuk Report Harian
+        // - Running: Semua tiket yang masih aktif (status OPEN/SC)
+        // - Closed: HANYA tiket yang di-update (closed) HARI INI
+        const todayStr = new Date().toDateString(); // Format: "Mon Nov 24 2025"
+        
+        const reportRunning = allRunning; // Semua running masuk report
+        const reportClosed = allClosed.filter(t => {
+            const closeDate = new Date(t.last_update_time).toDateString();
+            return closeDate === todayStr;
         });
+
+        // Jika tidak ada data sama sekali
+        if (reportRunning.length === 0 && reportClosed.length === 0) {
+            alert("Tidak ada data Running maupun Closed hari ini untuk kategori ini.");
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        // 5. Siapkan Variabel Header
+        const now = new Date();
+        // Format Tanggal: 24-11-2025
+        const tanggal = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        // Format Jam: 05.15
+        const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '.');
+        
+        const totalTiket = reportRunning.length + reportClosed.length;
+
+        // 6. Susun Format Laporan (Sesuai Request)
+        let t = `*Monitoring Tiket ${currentCategoryFilter.toUpperCase()} Area Bekasi*\n`;
+        t += `*Tanggal : ${tanggal}\n`;
+        t += `*Jam : ${jam}\n`;
+        t += `================================\n`;
+
+        // --- BAGIAN SUMMARY ---
+        t += `*).Jumlah Tiket Total  : ${totalTiket} Tiket*\n`;
+        // (Opsional: Jika nanti ada logika 'Pemotongan PU' vs 'Retail', bisa dipisah di sini)
+        t += `- Sisa Tiket Running    : ${reportRunning.length} tiket\n`;
+        t += `- Tiket Closed Hari Ini : ${reportClosed.length} tiket\n\n`;
+
+        // --- BAGIAN CLOSED ---
+        if (reportClosed.length > 0) {
+            t += `*)Closed  : ${reportClosed.length} tiket\n`;
+            reportClosed.forEach((ti, i) => {
+                t += `${i + 1}.✅${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
+                t += `RCA : ${ti.update_progres || 'Done'}\n`;
+                t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
+            });
+        } else {
+            t += `*)Closed  : 0 tiket\n\n`;
+        }
+
+        // --- BAGIAN ON PROGRES ---
+        if (reportRunning.length > 0) {
+            t += `*).ON Progres    : ${reportRunning.length} tiket\n`;
+            reportRunning.forEach((ti, i) => {
+                t += `${i + 1}.❌${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
+                t += `Update : ${ti.update_progres || 'Belum ada update'}\n`;
+                t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
+            });
+        } else {
+            t += `*).ON Progres    : 0 tiket\n`;
+        }
+
+        // Footer
+        t += `----------------------------------------\n`;
+        
+        // Masukkan ke textarea & tampilkan
+        document.getElementById('report-textarea').value = t;
+        reportModal.show();
+
+    } catch (error) {
+        console.error(error);
+        alert("Gagal mengambil data untuk laporan.");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
-
-    if (openTickets.length > 0) {
-        t += `*).ON Progres    : ${openTickets.length} tiket\n`;
-        openTickets.forEach((ti, i) => {
-            t += `${i + 1}.❌${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
-            t += `Update : ${ti.update_progres || 'Belum ada update'}\n`;
-            t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
-        });
-    }
-
-    t += `----------------------------------------\n`;
-    t += `_Generated by Dashboard System_`;
-
-    document.getElementById('report-textarea').value = t;
-    reportModal.show();
 }
 
 function copyReportToClipboard() {
