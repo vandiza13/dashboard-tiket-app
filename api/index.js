@@ -210,13 +210,25 @@ app.get('/api/stats', async (req, res) => {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    // Gunakan NOW() yang sudah di-set timezone WIB dari koneksi pool
-    const today = new Date().toISOString().split('T')[0];
-    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    // --- PERBAIKAN: Gunakan Waktu Jakarta, bukan UTC Server ---
+    const now = new Date();
+    
+    // Format tanggal hari ini di Jakarta (YYYY-MM-DD)
+    const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(now);
+
+    // Format awal bulan ini di Jakarta (YYYY-MM-01)
+    const firstDayOfMonth = today.substring(0, 7) + '-01';
+    // ---------------------------------------------------------
 
     const [runningTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC')");
     const [runningBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') GROUP BY subcategory ORDER BY count DESC");
     
+    // Query menggunakan variabel 'today' yang sudah berzona waktu Jakarta
     const [closedTodayTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ?", [today]);
     const [closedTodayBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ? GROUP BY subcategory ORDER BY count DESC", [today]);
     
@@ -245,6 +257,7 @@ app.get('/api/stats', async (req, res) => {
     res.status(500).json({ error: 'Gagal mengambil statistik' });
   }
 });
+
 
 app.get('/api/stats/closed-trend', async (req, res) => {
   try {
