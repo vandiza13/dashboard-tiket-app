@@ -1241,6 +1241,8 @@ function updateSubcategoryOptions(event) {
 
 // --- FUNGSI-FUNGSI CHART ---
 
+// --- FUNGSI-FUNGSI CHART (MODERN REDESIGN) ---
+
 function renderSubcategoryChart(data) {
     const ctx = document.getElementById('subcategoryChart');
     if (!ctx) return;
@@ -1252,21 +1254,20 @@ function renderSubcategoryChart(data) {
     const labels = data.map(item => item.subcategory || 'Tidak Dikategorikan');
     const counts = data.map(item => item.count);
 
-    const colorPalette = [
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(54, 162, 235, 0.7)',
-        'rgba(255, 206, 86, 0.7)',
-        'rgba(75, 192, 192, 0.7)',
-        'rgba(153, 102, 255, 0.7)',
-        'rgba(255, 159, 64, 0.7)',
-        'rgba(199, 199, 199, 0.7)',
-        'rgba(83, 102, 255, 0.7)',
-        'rgba(255, 99, 255, 0.7)',
-        'rgba(99, 255, 132, 0.7)',
+    // Palette Warna Modern (Tailwind-ish)
+    const modernColors = [
+        '#3b82f6', // Blue
+        '#10b981', // Emerald
+        '#8b5cf6', // Violet
+        '#f59e0b', // Amber
+        '#ef4444', // Red
+        '#06b6d4', // Cyan
+        '#ec4899', // Pink
+        '#6366f1', // Indigo
     ];
 
-    const backgroundColors = data.map((_, index) => colorPalette[index % colorPalette.length]);
-    const borderColors = backgroundColors.map(color => color.replace('0.7', '1'));
+    // Ulangi warna jika data lebih banyak dari palette
+    const backgroundColors = data.map((_, index) => modernColors[index % modernColors.length]);
 
     subcategoryChart = new Chart(ctx, {
         type: 'bar',
@@ -1276,22 +1277,49 @@ function renderSubcategoryChart(data) {
                 label: 'Jumlah Tiket',
                 data: counts,
                 backgroundColor: backgroundColors,
-                borderColor: borderColors,
-                borderWidth: 1
+                borderRadius: 6, // Sudut batang membulat
+                barPercentage: 0.6, // Batang tidak terlalu gemuk
+                borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }, // Sembunyikan legenda untuk bar chart
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)', // Tooltip gelap
+                    titleFont: { family: 'Inter', size: 13 },
+                    bodyFont: { family: 'Inter', size: 13 },
+                    padding: 10,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { precision: 0 }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
+                    ticks: { 
+                        precision: 0,
+                        font: { family: 'Inter', size: 11 },
+                        color: '#64748b'
+                    },
+                    grid: {
+                        color: '#f1f5f9', // Grid sangat halus
+                        borderDash: [5, 5] // Grid putus-putus
+                    },
+                    border: { display: false } // Hilangkan garis poros Y
+                },
+                x: {
+                    ticks: {
+                        font: { family: 'Inter', size: 11 },
+                        color: '#64748b',
+                        autoSkip: false,
+                        maxRotation: 45,
+                        minRotation: 0
+                    },
+                    grid: { display: false }, // Hilangkan grid vertikal
+                    border: { display: false }
                 }
             }
         }
@@ -1309,41 +1337,53 @@ function renderStatusChart(data) {
     const labels = data.map(item => item.status || 'Tidak Diketahui');
     const counts = data.map(item => item.count);
 
+    // Mapping Warna Status Konsisten dengan Badge
+    const statusColors = labels.map(status => {
+        const s = status ? status.toUpperCase() : '';
+        if (s === 'OPEN') return '#ef4444';   // Merah
+        if (s === 'SC') return '#3b82f6';     // Biru
+        if (s === 'CLOSED') return '#10b981'; // Hijau
+        return '#94a3b8'; // Abu-abu (Lainnya)
+    });
+
     statusChart = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut', // Ubah Pie jadi Doughnut (Lebih Modern)
         data: {
             labels: labels,
             datasets: [{
-                label: 'Jumlah Tiket',
                 data: counts,
-                backgroundColor: [
-                    'rgba(239, 68, 68, 0.7)',
-                    'rgba(59, 130, 246, 0.7)',
-                    'rgba(34, 197, 94, 0.7)',
-                    'rgba(156, 163, 175, 0.7)',
-                ],
-                borderColor: '#ffffff',
-                borderWidth: 2
+                backgroundColor: statusColors,
+                borderWidth: 0, // Hilangkan border putih kasar
+                hoverOffset: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '75%', // Lubang tengah lebih besar (Cincin Tipis)
             plugins: {
                 legend: {
-                    position: 'bottom',
+                    position: 'right', // Legenda di samping kanan
+                    labels: {
+                        usePointStyle: true, // Pakai titik bulat, bukan kotak
+                        pointStyle: 'circle',
+                        font: { family: 'Inter', size: 12 },
+                        color: '#475569',
+                        padding: 20
+                    }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    bodyFont: { family: 'Inter', size: 13 },
+                    padding: 10,
+                    cornerRadius: 8,
                     callbacks: {
                         label: function(context) {
-                            let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
+                            const label = context.label || '';
+                            const value = context.parsed;
                             const sum = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / sum) * 100).toFixed(1);
-                            label += `${context.parsed} (${percentage}%)`;
-                            return label;
+                            const percentage = ((value / sum) * 100).toFixed(1);
+                            return ` ${label}: ${value} (${percentage}%)`;
                         }
                     }
                 }
@@ -1351,6 +1391,7 @@ function renderStatusChart(data) {
         }
     });
 }
+
 
 // --- FUNGSI HELPER BARU (Letakkan di paling bawah file) ---
 function isToday(dateString) {
