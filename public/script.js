@@ -1015,18 +1015,18 @@ async function exportClosedTickets() {
     }
 }
 
+// --- public/script.js ---
 
 async function generateReport() {
-    // 1. Ubah tombol jadi loading
     const btn = document.querySelector('button[onclick="generateReport()"]');
-    const originalText = btn ? btn.innerText : 'Generate Report';
+    const originalText = btn ? btn.innerText : 'Generate Laporan';
     if(btn) {
         btn.innerText = "Memuat Data...";
         btn.disabled = true;
     }
 
     try {
-        // 2. Ambil data terbaru dari server (Running & Closed)
+        // 1. Ambil Data Terbaru dari Server
         const [resRunning, resClosed] = await Promise.all([
             fetch(`${API_URL_TICKETS}/running?limit=2000`, { headers: authHeaders }),
             fetch(`${API_URL_TICKETS}/closed?limit=2000`, { headers: authHeaders })
@@ -1038,26 +1038,23 @@ async function generateReport() {
         let allRunning = dataRunning.tickets || [];
         let allClosed = dataClosed.tickets || [];
 
-        // 3. Filter berdasarkan tab Kategori yang sedang aktif
+        // 2. Filter Kategori (Sesuai Tab yang Aktif)
         if (currentCategoryFilter !== 'Semua') {
             allRunning = allRunning.filter(t => t.category === currentCategoryFilter);
             allClosed = allClosed.filter(t => t.category === currentCategoryFilter);
         }
 
-        // 4. Filter Laporan Harian
-        // Running: Ambil SEMUA yang masih aktif
-        const reportRunning = allRunning;
-
-        // Closed: Ambil HANYA yang last_update_time == HARI INI (WIB)
+        // 3. Filter Laporan Harian
+        const reportRunning = allRunning; // Ambil SEMUA Running
+        // Ambil Closed HANYA yang last_update_time == HARI INI (WIB)
         const reportClosed = allClosed.filter(t => isToday(t.last_update_time));
 
-        // Cek jika data kosong
         if (reportRunning.length === 0 && reportClosed.length === 0) {
             alert("Laporan Nihil: Tidak ada tiket Running maupun tiket Closed hari ini.");
             return;
         }
 
-        // 5. Format Header Waktu
+        // 4. Format Header (WIB)
         const now = new Date();
         const optionsDate = { timeZone: 'Asia/Jakarta', day: '2-digit', month: '2-digit', year: 'numeric' };
         const optionsTime = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -1066,13 +1063,12 @@ async function generateReport() {
         const jam = new Intl.DateTimeFormat('id-ID', optionsTime).format(now).replace(':', '.');
         const totalTiket = reportRunning.length + reportClosed.length;
 
-        // 6. Susun Teks Laporan
+        // 5. Susun Teks Laporan
         let t = `*Monitoring Tiket ${currentCategoryFilter.toUpperCase()} Area Bekasi*\n`;
         t += `*Tanggal : ${tanggal}\n`;
         t += `*Jam : ${jam}\n`;
         t += `================================\n`;
 
-        // Summary
         t += `*).Jumlah Tiket Total  : ${totalTiket} Tiket*\n`;
         t += `- Sisa Tiket Running    : ${reportRunning.length} tiket\n`;
         t += `- Tiket Closed Hari Ini : ${reportClosed.length} tiket\n\n`;
@@ -1321,11 +1317,10 @@ function renderStatusChart(data) {
     });
 }
 
-// --- FUNGSI HELPER: CEK TANGGAL HARI INI (WIB) ---
+// --- FUNGSI HELPER BARU (Letakkan di paling bawah file) ---
 function isToday(dateString) {
     if (!dateString) return false;
     
-    // Memaksa zona waktu Asia/Jakarta saat membandingkan tanggal
     const options = { 
         timeZone: 'Asia/Jakarta', 
         year: 'numeric', 
@@ -1336,7 +1331,6 @@ function isToday(dateString) {
     const dateCheck = new Date(dateString);
     const dateNow = new Date();
     
-    // Bandingkan string tanggal (misal: "24/11/2025")
     const strCheck = new Intl.DateTimeFormat('id-ID', options).format(dateCheck);
     const strNow = new Intl.DateTimeFormat('id-ID', options).format(dateNow);
     
