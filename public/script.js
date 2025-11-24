@@ -1015,75 +1015,72 @@ async function exportClosedTickets() {
     }
 }
 
+// --- public/script.js ---
 
 async function generateReport() {
-    // Tampilkan loading state pada tombol (opsional, agar user tahu sedang proses)
     const btn = document.querySelector('button[onclick="generateReport()"]');
     const originalText = btn.innerText;
     btn.innerText = "Memuat Data...";
     btn.disabled = true;
 
     try {
-        // 1. Ambil data Tiket Running (Status OPEN/SC) - Ambil banyak (limit 1000)
-        const resRunning = await fetch(`${API_URL_TICKETS}/running?limit=1000`, { headers: authHeaders });
-        const dataRunning = await resRunning.json();
-        let allRunning = dataRunning.tickets || [];
+        // 1. Ambil Data Terbaru dari Server
+        const [resRunning, resClosed] = await Promise.all([
+            fetch(`${API_URL_TICKETS}/running?limit=1000`, { headers: authHeaders }),
+            fetch(`${API_URL_TICKETS}/closed?limit=1000`, { headers: authHeaders })
+        ]);
 
-        // 2. Ambil data Tiket Closed (Status CLOSED) - Ambil banyak (limit 1000)
-        const resClosed = await fetch(`${API_URL_TICKETS}/closed?limit=1000`, { headers: authHeaders });
+        const dataRunning = await resRunning.json();
         const dataClosed = await resClosed.json();
+
+        let allRunning = dataRunning.tickets || [];
         let allClosed = dataClosed.tickets || [];
 
-        // 3. Filter Data Sesuai Kategori yang Dipilih
+        // 2. Filter Kategori (Jika ada filter aktif)
         if (currentCategoryFilter !== 'Semua') {
             allRunning = allRunning.filter(t => t.category === currentCategoryFilter);
             allClosed = allClosed.filter(t => t.category === currentCategoryFilter);
         }
 
-        // 4. Filter Khusus untuk Report Harian
-        // - Running: Semua tiket yang masih aktif (status OPEN/SC)
-        // - Closed: HANYA tiket yang di-update (closed) HARI INI
-        const todayStr = new Date().toDateString(); // Format: "Mon Nov 24 2025"
+        // 3. Filter Khusus Laporan Harian
         
-        const reportRunning = allRunning; // Semua running masuk report
-        const reportClosed = allClosed.filter(t => {
-            const closeDate = new Date(t.last_update_time).toDateString();
-            return closeDate === todayStr;
-        });
+        // A. Tiket Running: Ambil SEMUA yang masih aktif (Backlog hari ini)
+        const reportRunning = allRunning;
 
-        // Jika tidak ada data sama sekali
+        // B. Tiket Closed: Ambil HANYA yang last_update_time == HARI INI
+        // Kita gunakan fungsi helper cek tanggal biar akurat
+        const reportClosed = allClosed.filter(t => isToday(t.last_update_time));
+
+        // Cek jika kosong
         if (reportRunning.length === 0 && reportClosed.length === 0) {
-            alert("Tidak ada data Running maupun Closed hari ini untuk kategori ini.");
+            alert("Laporan Nihil: Tidak ada tiket Running maupun tiket Closed hari ini.");
             btn.innerText = originalText;
             btn.disabled = false;
             return;
         }
 
-        // 5. Siapkan Variabel Header
+        // 4. Format Header Laporan
         const now = new Date();
-        // Format Tanggal: 24-11-2025
         const tanggal = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-        // Format Jam: 05.15
         const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '.');
-        
         const totalTiket = reportRunning.length + reportClosed.length;
 
-        // 6. Susun Format Laporan (Sesuai Request)
+        // 5. Susun Teks Laporan
         let t = `*Monitoring Tiket ${currentCategoryFilter.toUpperCase()} Area Bekasi*\n`;
         t += `*Tanggal : ${tanggal}\n`;
         t += `*Jam : ${jam}\n`;
         t += `================================\n`;
 
-        // --- BAGIAN SUMMARY ---
+        // Summary
         t += `*).Jumlah Tiket Total  : ${totalTiket} Tiket*\n`;
-        // (Opsional: Jika nanti ada logika 'Pemotongan PU' vs 'Retail', bisa dipisah di sini)
         t += `- Sisa Tiket Running    : ${reportRunning.length} tiket\n`;
         t += `- Tiket Closed Hari Ini : ${reportClosed.length} tiket\n\n`;
 
-        // --- BAGIAN CLOSED ---
+        // List Closed (Hanya Hari Ini)
         if (reportClosed.length > 0) {
             t += `*)Closed  : ${reportClosed.length} tiket\n`;
             reportClosed.forEach((ti, i) => {
+                // Format detail
                 t += `${i + 1}.✅${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
                 t += `RCA : ${ti.update_progres || 'Done'}\n`;
                 t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
@@ -1092,7 +1089,7 @@ async function generateReport() {
             t += `*)Closed  : 0 tiket\n\n`;
         }
 
-        // --- BAGIAN ON PROGRES ---
+        // List Running / Open
         if (reportRunning.length > 0) {
             t += `*).ON Progres    : ${reportRunning.length} tiket\n`;
             reportRunning.forEach((ti, i) => {
@@ -1104,20 +1101,30 @@ async function generateReport() {
             t += `*).ON Progres    : 0 tiket\n`;
         }
 
-        // Footer
         t += `----------------------------------------\n`;
-        
-        // Masukkan ke textarea & tampilkan
+
+        // Tampilkan
         document.getElementById('report-textarea').value = t;
         reportModal.show();
 
     } catch (error) {
-        console.error(error);
-        alert("Gagal mengambil data untuk laporan.");
+        console.error("Error generating report:", error);
+        alert("Gagal menyusun laporan: " + error.message);
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
     }
+}
+
+// --- FUNGSI HELPER BARU: CEK APAKAH TANGGAL == HARI INI ---
+function isToday(dateString) {
+    if (!dateString) return false;
+    const d = new Date(dateString);
+    const today = new Date();
+    
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
 }
 
 function copyReportToClipboard() {
