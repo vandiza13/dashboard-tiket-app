@@ -1024,10 +1024,10 @@ async function generateReport() {
     btn.disabled = true;
 
     try {
-        // 1. Ambil Data Terbaru dari Server
+        // 1. Ambil Data Terbaru dari Server (Limit diperbesar agar semua terambil)
         const [resRunning, resClosed] = await Promise.all([
-            fetch(`${API_URL_TICKETS}/running?limit=1000`, { headers: authHeaders }),
-            fetch(`${API_URL_TICKETS}/closed?limit=1000`, { headers: authHeaders })
+            fetch(`${API_URL_TICKETS}/running?limit=2000`, { headers: authHeaders }),
+            fetch(`${API_URL_TICKETS}/closed?limit=2000`, { headers: authHeaders })
         ]);
 
         const dataRunning = await resRunning.json();
@@ -1036,7 +1036,7 @@ async function generateReport() {
         let allRunning = dataRunning.tickets || [];
         let allClosed = dataClosed.tickets || [];
 
-        // 2. Filter Kategori (Jika ada filter aktif)
+        // 2. Filter Kategori
         if (currentCategoryFilter !== 'Semua') {
             allRunning = allRunning.filter(t => t.category === currentCategoryFilter);
             allClosed = allClosed.filter(t => t.category === currentCategoryFilter);
@@ -1044,11 +1044,10 @@ async function generateReport() {
 
         // 3. Filter Khusus Laporan Harian
         
-        // A. Tiket Running: Ambil SEMUA yang masih aktif (Backlog hari ini)
+        // A. Tiket Running: Semua yang masih aktif
         const reportRunning = allRunning;
 
-        // B. Tiket Closed: Ambil HANYA yang last_update_time == HARI INI
-        // Kita gunakan fungsi helper cek tanggal biar akurat
+        // B. Tiket Closed: HANYA yang last_update_time == HARI INI (Zona Waktu Jakarta)
         const reportClosed = allClosed.filter(t => isToday(t.last_update_time));
 
         // Cek jika kosong
@@ -1061,8 +1060,12 @@ async function generateReport() {
 
         // 4. Format Header Laporan
         const now = new Date();
-        const tanggal = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-        const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '.');
+        const optionsDate = { timeZone: 'Asia/Jakarta', day: '2-digit', month: '2-digit', year: 'numeric' };
+        const optionsTime = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false };
+        
+        const tanggal = new Intl.DateTimeFormat('id-ID', optionsDate).format(now).replace(/\//g, '-');
+        const jam = new Intl.DateTimeFormat('id-ID', optionsTime).format(now).replace(':', '.');
+        
         const totalTiket = reportRunning.length + reportClosed.length;
 
         // 5. Susun Teks Laporan
@@ -1080,7 +1083,6 @@ async function generateReport() {
         if (reportClosed.length > 0) {
             t += `*)Closed  : ${reportClosed.length} tiket\n`;
             reportClosed.forEach((ti, i) => {
-                // Format detail
                 t += `${i + 1}.✅${ti.id_tiket}  ${ti.deskripsi || '-'}\n`;
                 t += `RCA : ${ti.update_progres || 'Done'}\n`;
                 t += `Teknisi : ${ti.technician_details || '-'}\n\n`;
@@ -1103,7 +1105,6 @@ async function generateReport() {
 
         t += `----------------------------------------\n`;
 
-        // Tampilkan
         document.getElementById('report-textarea').value = t;
         reportModal.show();
 
@@ -1116,15 +1117,28 @@ async function generateReport() {
     }
 }
 
-// --- FUNGSI HELPER BARU: CEK APAKAH TANGGAL == HARI INI ---
+// --- FUNGSI HELPER PERBAIKAN: CEK TANGGAL DENGAN ZONA WAKTU JAKARTA ---
 function isToday(dateString) {
     if (!dateString) return false;
-    const d = new Date(dateString);
-    const today = new Date();
     
-    return d.getDate() === today.getDate() &&
-           d.getMonth() === today.getMonth() &&
-           d.getFullYear() === today.getFullYear();
+    // Opsi format tanggal yang memaksa zona waktu Asia/Jakarta
+    const options = { 
+        timeZone: 'Asia/Jakarta', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    };
+    
+    const dateCheck = new Date(dateString);
+    const dateNow = new Date();
+    
+    // Konversi kedua tanggal menjadi string "DD/MM/YYYY" berdasarkan zona waktu Jakarta
+    // Contoh hasil: "24/11/2025"
+    const strCheck = new Intl.DateTimeFormat('id-ID', options).format(dateCheck);
+    const strNow = new Intl.DateTimeFormat('id-ID', options).format(dateNow);
+    
+    // Bandingkan string tanggalnya saja
+    return strCheck === strNow;
 }
 
 function copyReportToClipboard() {
