@@ -740,13 +740,48 @@ function renderUsersTable(users) {
         </td>
         <td>${formatDateTimeWIB(user.created_at)}</td>
         <td>
-          <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteUser(${user.id})">
-            <i class="bi bi-trash-fill"></i> Hapus
-          </button>
-        </td>
+              <div class="btn-group">
+                  <button class="btn btn-sm btn-outline-warning" onclick="handleResetUserPassword(${user.id}, '${escapeHTML(user.username)}')">
+                    <i class="bi bi-key"></i> Reset
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteUser(${user.id})">
+                    <i class="bi bi-trash-fill"></i> Hapus
+                  </button>
+              </div>
+            </td>
       </tr>
     `;
   });
+}
+
+// --- Di public/script.js ---
+
+async function handleResetUserPassword(id, username) {
+    // Admin diminta memasukkan password baru (Default: 123456)
+    const newPassword = prompt(`Masukkan password BARU untuk pengguna "${username}":`, "123456");
+    
+    if (newPassword === null) return; // Jika ditekan Cancel
+    if (newPassword.trim().length < 6) {
+        alert("Password harus minimal 6 karakter.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/users/${id}/reset-password`, {
+            method: 'PUT',
+            headers: authHeaders,
+            body: JSON.stringify({ newPassword: newPassword })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) throw new Error(result.error);
+        
+        alert(`Sukses: ${result.message}.\nSilakan infokan password baru ke pengguna.`);
+        
+    } catch (error) {
+        alert('Gagal: ' + error.message);
+    }
 }
 
 async function handleEditUserRole(id, newRole) {

@@ -180,6 +180,31 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+app.put('/api/users/:id/reset-password', async (req, res) => {
+  try {
+    const adminUser = await protect(req);
+    restrictTo(adminUser, ['Admin']);
+
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password minimal 6 karakter' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, id]);
+
+    res.json({ message: 'Password pengguna berhasil di-reset' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
+      return res.status(403).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Gagal mereset password' });
+  }
+});
+
 // DELETE: Hapus pengguna (Hanya Admin)
 app.delete('/api/users/:id', async (req, res) => {
   try {
