@@ -318,16 +318,23 @@ async function fetchAndRenderStats() {
                 </div>
             `;
         }
-
+        // --- BAGIAN UPDATE CHART TREN (MODERN GRADIENT) ---
         if (typeof Chart !== "undefined" && document.getElementById('stats-trend-chart')) {
             if (statsChartLoading) statsChartLoading.style.display = 'inline';
             try {
                 const trendRes = await fetch(`/api/stats/closed-trend?days=30`, { headers: authHeaders });
                 const trendData = await trendRes.json();
-                const labels = trendData.map(item => item.date);
+                const labels = trendData.map(item => {
+                    // Format tanggal label jadi lebih pendek (misal: 24 Nov)
+                    const d = new Date(item.date);
+                    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                });
                 const data = trendData.map(item => item.count);
 
+                // Hancurkan chart lama jika ada
                 if (statsTrendChart) statsTrendChart.destroy();
+
+                const ctx = document.getElementById('stats-trend-chart').getContext('2d');
 
                 if (labels.length === 0) {
                     document.getElementById('stats-trend-chart').style.display = 'none';
@@ -335,58 +342,97 @@ async function fetchAndRenderStats() {
                 } else {
                     document.getElementById('stats-trend-chart').style.display = 'block';
                     document.getElementById('stats-chart-loading').innerText = '';
-                    statsTrendChart = new Chart(document.getElementById('stats-trend-chart').getContext('2d'), {
+
+                    // Buat Gradient Mewah
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); // Biru terang di atas
+                    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)'); // Transparan di bawah
+
+                    statsTrendChart = new Chart(ctx, {
                         type: 'line',
                         data: {
                             labels,
                             datasets: [{
-                                label: 'Closed',
+                                label: 'Tiket Closed',
                                 data,
-                                fill: true,
-                                borderColor: '#2563eb',
-                                backgroundColor: 'rgba(59,130,246,0.08)',
-                                tension: 0.3,
-                                pointRadius: 3,
-                                pointBackgroundColor: '#2563eb'
+                                fill: true, // Isi area bawah grafik
+                                backgroundColor: gradient, // Pakai gradient yang kita buat
+                                borderColor: '#3b82f6', // Garis biru solid
+                                borderWidth: 3, // Garis sedikit lebih tebal
+                                tension: 0.4, // Garis melengkung halus (Curved)
+                                pointBackgroundColor: '#ffffff', // Titik putih
+                                pointBorderColor: '#3b82f6', // Border titik biru
+                                pointBorderWidth: 2,
+                                pointRadius: 4, // Ukuran titik
+                                pointHoverRadius: 7, // Membesar saat di-hover
+                                pointHoverBackgroundColor: '#3b82f6',
+                                pointHoverBorderColor: '#ffffff',
+                                pointHoverBorderWidth: 3
                             }]
                         },
                         options: {
                             responsive: true,
+                            maintainAspectRatio: false,
                             plugins: {
-                                legend: { display: false },
+                                legend: { display: false }, // Sembunyikan legenda judul
                                 tooltip: {
+                                    backgroundColor: 'rgba(15, 23, 42, 0.9)', // Tooltip gelap modern
+                                    titleColor: '#f8fafc',
+                                    bodyColor: '#f8fafc',
+                                    titleFont: { family: 'Inter', size: 13 },
+                                    bodyFont: { family: 'Inter', size: 13, weight: 'bold' },
+                                    padding: 12,
+                                    cornerRadius: 8,
+                                    displayColors: false,
                                     callbacks: {
                                         label: function(context) {
-                                            return `Closed: ${context.parsed.y}`;
+                                            return ` ${context.parsed.y} Tiket Selesai`;
                                         }
                                     }
                                 }
                             },
                             scales: {
                                 x: {
-                                    display: true,
-                                    title: { display: false },
+                                    grid: { 
+                                        display: false, // Hilangkan grid vertikal
+                                        drawBorder: false
+                                    },
                                     ticks: {
-                                        maxTicksLimit: 10,
-                                        autoSkip: true
+                                        color: '#64748b',
+                                        font: { family: 'Inter', size: 11 },
+                                        maxTicksLimit: 8 // Batasi label agar tidak menumpuk
                                     }
                                 },
                                 y: {
                                     beginAtZero: true,
-                                    ticks: { precision:0 }
+                                    border: { display: false }, // Hilangkan garis poros Y
+                                    grid: {
+                                        color: '#f1f5f9', // Grid horizontal sangat halus
+                                        borderDash: [5, 5] // Grid putus-putus
+                                    },
+                                    ticks: { 
+                                        precision: 0,
+                                        color: '#64748b',
+                                        font: { family: 'Inter', size: 11 },
+                                        padding: 10
+                                    }
                                 }
+                            },
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
                             }
                         }
                     });
                 }
             } catch (e) {
+                console.error(e);
                 if (statsTrendChart) statsTrendChart.destroy();
                 document.getElementById('stats-trend-chart').style.display = 'none';
                 document.getElementById('stats-chart-loading').innerText = 'Gagal memuat grafik';
             }
             if (statsChartLoading) statsChartLoading.style.display = 'none';
         }
-
         contentArea.innerHTML = `
         <div class="row">
             <div class="col-lg-6 mb-4">
