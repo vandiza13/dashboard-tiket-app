@@ -162,7 +162,6 @@ async function router() {
         case '#stats':
             pageTitle.innerText = 'Statistik';
             mainActions.style.display = 'none';
-            dateFilterContainer.style.display = 'flex';
             if (statsSummaryContainer) statsSummaryContainer.style.display = 'block';
             await fetchAndRenderStats();
             break;
