@@ -162,6 +162,7 @@ async function router() {
         case '#stats':
             pageTitle.innerText = 'Statistik';
             mainActions.style.display = 'none';
+            dateFilterContainer.style.display = 'flex';
             if (statsSummaryContainer) statsSummaryContainer.style.display = 'block';
             await fetchAndRenderStats();
             break;
@@ -266,18 +267,27 @@ async function fetchAndRenderStats() {
     const contentArea = document.getElementById('content-area');
     const statsSummaryRow = document.getElementById('stats-summary-row');
     const statsChartLoading = document.getElementById('stats-chart-loading');
+    
+    // Ambil nilai tanggal dari filter
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
     contentArea.innerHTML = '';
     if (statsSummaryRow) statsSummaryRow.innerHTML = '';
     if (statsChartLoading) statsChartLoading.style.display = 'inline';
 
     try {
-        const response = await fetch(`/api/stats?ts=${Date.now()}`, { headers: authHeaders });
-        if (!response.ok) throw new Error('Gagal mengambil data statistik');
-        const stats = await response.json();
-        if (!stats.runningDetails || !stats.closedTodayDetails || !stats.statusDistribution || !stats.categoryDistribution || !stats.closedThisMonth || !stats.subcategoryDistribution) {
-            throw new Error('Format data statistik tidak sesuai.');
+        // Susun URL dengan parameter tanggal
+        let url = `/api/stats?ts=${Date.now()}`;
+        if (startDate && endDate) {
+            url += `&startDate=${startDate}&endDate=${endDate}`;
         }
 
+        const response = await fetch(url, { headers: authHeaders });
+        if (!response.ok) throw new Error('Gagal mengambil data statistik');
+        const stats = await response.json();
+
+        // Render Kartu Summary
         if (statsSummaryRow) {
             statsSummaryRow.innerHTML = `
                 <div class="col-md-3 col-6">
@@ -293,9 +303,8 @@ async function fetchAndRenderStats() {
                     <div class="stats-summary-card bg-gradient-success">
                         <span class="icon"><i class="bi bi-check-circle"></i></span>
                         <div>
-                            <div class="stat-value">${stats.closedTodayDetails.total}</div>
-                            <div class="stat-label">Closed Hari Ini</div>
-                        </div>
+                            <div class="stat-value">${stats.closedPeriodDetails.total}</div>
+                            <div class="stat-label">${stats.periodLabel}</div> </div>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
@@ -318,20 +327,31 @@ async function fetchAndRenderStats() {
                 </div>
             `;
         }
-        // --- BAGIAN UPDATE CHART TREN (MODERN GRADIENT) ---
+
+        // Render Grafik Tren (Chart Line)
         if (typeof Chart !== "undefined" && document.getElementById('stats-trend-chart')) {
             if (statsChartLoading) statsChartLoading.style.display = 'inline';
             try {
-                const trendRes = await fetch(`/api/stats/closed-trend?days=30`, { headers: authHeaders });
+                // Susun URL Tren dengan parameter tanggal
+                let trendUrl = `/api/stats/closed-trend?days=30`; // Default
+                if (startDate && endDate) {
+                    trendUrl = `/api/stats/closed-trend?startDate=${startDate}&endDate=${endDate}`;
+                }
+
+                const trendRes = await fetch(trendUrl, { headers: authHeaders });
                 const trendData = await trendRes.json();
+                
+                // ... (Sisa kode rendering chart SAMA PERSIS dengan sebelumnya) ...
+                // COPY PASTE KODE CHART DARI FILE LAMA ANDA DI SINI
+                // Mulai dari: const labels = trendData.map(...) 
+                // Sampai: Penutup blok try-catch chart
+                
                 const labels = trendData.map(item => {
-                    // Format tanggal label jadi lebih pendek (misal: 24 Nov)
                     const d = new Date(item.date);
                     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
                 });
                 const data = trendData.map(item => item.count);
 
-                // Hancurkan chart lama jika ada
                 if (statsTrendChart) statsTrendChart.destroy();
 
                 const ctx = document.getElementById('stats-trend-chart').getContext('2d');
@@ -343,10 +363,9 @@ async function fetchAndRenderStats() {
                     document.getElementById('stats-trend-chart').style.display = 'block';
                     document.getElementById('stats-chart-loading').innerText = '';
 
-                    // Buat Gradient Mewah
                     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); // Biru terang di atas
-                    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)'); // Transparan di bawah
+                    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+                    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
 
                     statsTrendChart = new Chart(ctx, {
                         type: 'line',
@@ -355,16 +374,16 @@ async function fetchAndRenderStats() {
                             datasets: [{
                                 label: 'Tiket Closed',
                                 data,
-                                fill: true, // Isi area bawah grafik
-                                backgroundColor: gradient, // Pakai gradient yang kita buat
-                                borderColor: '#3b82f6', // Garis biru solid
-                                borderWidth: 3, // Garis sedikit lebih tebal
-                                tension: 0.4, // Garis melengkung halus (Curved)
-                                pointBackgroundColor: '#ffffff', // Titik putih
-                                pointBorderColor: '#3b82f6', // Border titik biru
+                                fill: true,
+                                backgroundColor: gradient,
+                                borderColor: '#3b82f6',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                pointBackgroundColor: '#ffffff',
+                                pointBorderColor: '#3b82f6',
                                 pointBorderWidth: 2,
-                                pointRadius: 4, // Ukuran titik
-                                pointHoverRadius: 7, // Membesar saat di-hover
+                                pointRadius: 4,
+                                pointHoverRadius: 7,
                                 pointHoverBackgroundColor: '#3b82f6',
                                 pointHoverBorderColor: '#ffffff',
                                 pointHoverBorderWidth: 3
@@ -374,65 +393,33 @@ async function fetchAndRenderStats() {
                             responsive: true,
                             maintainAspectRatio: false,
                             plugins: {
-                                legend: { display: false }, // Sembunyikan legenda judul
+                                legend: { display: false },
                                 tooltip: {
-                                    backgroundColor: 'rgba(15, 23, 42, 0.9)', // Tooltip gelap modern
-                                    titleColor: '#f8fafc',
-                                    bodyColor: '#f8fafc',
+                                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
                                     titleFont: { family: 'Inter', size: 13 },
-                                    bodyFont: { family: 'Inter', size: 13, weight: 'bold' },
+                                    bodyFont: { family: 'Inter', size: 13 },
                                     padding: 12,
                                     cornerRadius: 8,
                                     displayColors: false,
-                                    callbacks: {
-                                        label: function(context) {
-                                            return ` ${context.parsed.y} Tiket Selesai`;
-                                        }
-                                    }
+                                    callbacks: { label: function(context) { return ` ${context.parsed.y} Tiket Selesai`; } }
                                 }
                             },
                             scales: {
-                                x: {
-                                    grid: { 
-                                        display: false, // Hilangkan grid vertikal
-                                        drawBorder: false
-                                    },
-                                    ticks: {
-                                        color: '#64748b',
-                                        font: { family: 'Inter', size: 11 },
-                                        maxTicksLimit: 8 // Batasi label agar tidak menumpuk
-                                    }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    border: { display: false }, // Hilangkan garis poros Y
-                                    grid: {
-                                        color: '#f1f5f9', // Grid horizontal sangat halus
-                                        borderDash: [5, 5] // Grid putus-putus
-                                    },
-                                    ticks: { 
-                                        precision: 0,
-                                        color: '#64748b',
-                                        font: { family: 'Inter', size: 11 },
-                                        padding: 10
-                                    }
-                                }
+                                x: { grid: { display: false }, ticks: { color: '#64748b', font: { family: 'Inter', size: 11 }, maxTicksLimit: 8 } },
+                                y: { beginAtZero: true, border: { display: false }, grid: { color: '#f1f5f9', borderDash: [5, 5] }, ticks: { precision: 0, color: '#64748b', font: { family: 'Inter', size: 11 }, padding: 10 } }
                             },
-                            interaction: {
-                                mode: 'index',
-                                intersect: false,
-                            }
+                            interaction: { mode: 'index', intersect: false, }
                         }
                     });
                 }
             } catch (e) {
                 console.error(e);
                 if (statsTrendChart) statsTrendChart.destroy();
-                document.getElementById('stats-trend-chart').style.display = 'none';
-                document.getElementById('stats-chart-loading').innerText = 'Gagal memuat grafik';
             }
             if (statsChartLoading) statsChartLoading.style.display = 'none';
         }
+
+        // Render List Detail & Pie Chart (Menggunakan data periodDetails)
         contentArea.innerHTML = `
         <div class="row">
             <div class="col-lg-6 mb-4">
@@ -446,8 +433,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Closed Hari Ini</span>
-                    </div>
+                        <span class="stats-section-title">${stats.periodLabel}</span> </div>
                     <div class="card-body" id="closed-today-subcat-list"></div>
                 </div>
             </div>
@@ -492,9 +478,10 @@ async function fetchAndRenderStats() {
         }
 
         const closedListDiv = document.getElementById('closed-today-subcat-list');
-        if (stats.closedTodayDetails.bySubcategory.length > 0) {
+        // Gunakan closedPeriodDetails (bukan closedTodayDetails lagi)
+        if (stats.closedPeriodDetails.bySubcategory.length > 0) {
             let html = '<ul class="list-group">';
-            stats.closedTodayDetails.bySubcategory.forEach(item => {
+            stats.closedPeriodDetails.bySubcategory.forEach(item => {
                 html += `<li class="list-group-item d-flex justify-content-between align-items-center">
                     ${item.subcategory || '-'}
                     <span class="badge bg-success rounded-pill">${item.count}</span>
@@ -503,7 +490,7 @@ async function fetchAndRenderStats() {
             html += '</ul>';
             closedListDiv.innerHTML = html;
         } else {
-            closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
+            closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai di periode ini.</p>';
         }
         
         renderSubcategoryChart(stats.subcategoryDistribution);
@@ -515,6 +502,7 @@ async function fetchAndRenderStats() {
         if (statsChartLoading) statsChartLoading.style.display = 'none';
     }
 }
+
 
 async function fetchActiveTechnicians() {
      try {
@@ -538,7 +526,11 @@ async function fetchTechnicians() {
 // --- FUNGSI FILTER & RENDER ---
 
 function applyDateFilter() {
-    router();
+    if (currentView === 'running' || currentView === 'closed') {
+        router(); // Refresh tabel tiket
+    } else if (window.location.hash === '#stats') {
+        fetchAndRenderStats(); // Refresh statistik
+    }
 }
 
 function clearDateFilter() {
