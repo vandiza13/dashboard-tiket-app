@@ -1290,7 +1290,6 @@ function updateSubcategoryOptions(event) {
 
 // --- FUNGSI-FUNGSI CHART (MODERN REDESIGN) ---
 
-// --- public/script.js ---
 
 function renderMonthlySubcategoryChart(data) {
     const ctx = document.getElementById('subcategoryChart');
@@ -1304,18 +1303,25 @@ function renderMonthlySubcategoryChart(data) {
     const months = [...new Set(data.map(item => item.month))];
     const subcategories = [...new Set(data.map(item => item.subcategory))];
 
-    // Format Bulan (Nov 2025)
     const formattedMonths = months.map(m => {
         const [y, mo] = m.split('-');
         const date = new Date(y, mo - 1);
         return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
     });
 
-    // 2. Palette Warna Luas (Untuk banyak subkategori)
-    const palette = [
-        '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
-        '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#f43f5e',
-        '#64748b', '#14b8a6', '#d946ef', '#f97316', '#a855f7'
+    // 2. Palette Warna Modern & Harmonis
+    // Warna dipilih agar terlihat bagus saat ditumpuk
+    const modernPalette = [
+        '#6366f1', // Indigo
+        '#10b981', // Emerald (Green)
+        '#f59e0b', // Amber (Yellow/Orange)
+        '#ef4444', // Rose (Red)
+        '#3b82f6', // Blue
+        '#8b5cf6', // Violet
+        '#06b6d4', // Cyan
+        '#ec4899', // Pink
+        '#f97316', // Orange
+        '#64748b'  // Slate (Gray)
     ];
 
     // 3. Buat Dataset
@@ -1326,14 +1332,15 @@ function renderMonthlySubcategoryChart(data) {
                 const found = data.find(d => d.month === m && d.subcategory === sub);
                 return found ? found.count : 0;
             }),
-            // Ambil warna dari palette secara berurutan
-            backgroundColor: palette[index % palette.length],
-            borderRadius: 4,
-            barPercentage: 0.6,
+            backgroundColor: modernPalette[index % modernPalette.length],
+            borderRadius: 6, // Sudut sedikit membulat
+            barPercentage: 0.7, // Batang tidak terlalu gemuk
+            categoryPercentage: 0.8,
+            borderSkipped: false, // agar radius berlaku di semua sudut
         };
     });
 
-    // 4. Render Chart
+    // 4. Render Chart dengan Opsi Modern
     subcategoryChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1343,33 +1350,38 @@ function renderMonthlySubcategoryChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { top: 10, right: 20, left: 10, bottom: 0 }
+            },
             plugins: {
                 legend: {
                     position: 'top',
-                    align: 'start', // Rata kiri agar rapi jika label banyak
+                    align: 'start', // Rata kiri
                     labels: {
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        font: { family: 'Inter', size: 10 },
-                        padding: 10,
+                        font: { family: 'Inter', size: 11, weight: '500' },
+                        color: '#475569',
+                        padding: 15,
                         boxWidth: 8
                     }
                 },
                 tooltip: {
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    titleFont: { family: 'Inter', size: 13 },
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)', // Tooltip gelap
+                    titleFont: { family: 'Inter', size: 13, weight: '600' },
                     bodyFont: { family: 'Inter', size: 12 },
-                    padding: 10,
-                    cornerRadius: 8,
+                    padding: 12,
+                    cornerRadius: 10,
+                    multiKeyBackground: 'rgba(0,0,0,0)', // Hilangkan kotak warna di dalam tooltip
                     callbacks: {
                         footer: function(tooltipItems) {
                             let total = 0;
                             tooltipItems.forEach(function(tooltipItem) {
                                 total += tooltipItem.parsed.y;
                             });
-                            return 'Total: ' + total;
+                            return '\nTotal Bulan Ini: ' + total;
                         }
                     }
                 }
@@ -1377,9 +1389,9 @@ function renderMonthlySubcategoryChart(data) {
             scales: {
                 x: {
                     stacked: true,
-                    grid: { display: false },
+                    grid: { display: false, drawBorder: false }, // Hilangkan grid vertikal total
                     ticks: {
-                        font: { family: 'Inter', size: 11 },
+                        font: { family: 'Inter', size: 11, weight: '500' },
                         color: '#64748b'
                     }
                 },
@@ -1387,20 +1399,22 @@ function renderMonthlySubcategoryChart(data) {
                     stacked: true,
                     beginAtZero: true,
                     grid: {
-                        color: '#f1f5f9',
-                        borderDash: [5, 5]
+                        color: '#e2e8f0', // Warna grid sangat halus
+                        borderDash: [6, 6], // Garis putus-putus halus
+                        drawBorder: false // Hilangkan garis poros Y
                     },
-                    border: { display: false },
                     ticks: {
                         precision: 0,
                         font: { family: 'Inter', size: 11 },
-                        color: '#64748b'
+                        color: '#64748b',
+                        padding: 10
                     }
                 }
             }
         }
     });
 }
+
 
 function renderStatusChart(data) {
     const ctx = document.getElementById('statusChart');
@@ -1413,53 +1427,57 @@ function renderStatusChart(data) {
     const labels = data.map(item => item.status || 'Tidak Diketahui');
     const counts = data.map(item => item.count);
 
-    // Mapping Warna Status Konsisten dengan Badge
-    const statusColors = labels.map(status => {
-        const s = status ? status.toUpperCase() : '';
-        if (s === 'OPEN') return '#ef4444';   // Merah
-        if (s === 'SC') return '#3b82f6';     // Biru
-        if (s === 'CLOSED') return '#10b981'; // Hijau
-        return '#94a3b8'; // Abu-abu (Lainnya)
-    });
+    // Warna Status yang Konsisten dan Lebih Fresh
+    const statusColorsMap = {
+        'OPEN': '#ef4444',   // Merah (Rose)
+        'SC': '#3b82f6',     // Biru (Blue)
+        'CLOSED': '#10b981', // Hijau (Emerald)
+    };
+
+    const backgroundColors = labels.map(status => statusColorsMap[status] || '#94a3b8');
 
     statusChart = new Chart(ctx, {
-        type: 'doughnut', // Ubah Pie jadi Doughnut (Lebih Modern)
+        type: 'doughnut',
         data: {
             labels: labels,
             datasets: [{
                 data: counts,
-                backgroundColor: statusColors,
-                borderWidth: 0, // Hilangkan border putih kasar
-                hoverOffset: 4
+                backgroundColor: backgroundColors,
+                borderWidth: 0, // Hilangkan border putih antar segmen agar lebih bersih
+                hoverOffset: 15 // Efek "pop-out" yang lebih terasa saat di-hover
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '75%', // Lubang tengah lebih besar (Cincin Tipis)
+            cutout: '75%', // Cincin yang lebih tipis dan elegan
+            layout: {
+                padding: 20
+            },
             plugins: {
                 legend: {
-                    position: 'right', // Legenda di samping kanan
+                    position: 'right', // Legenda di samping
                     labels: {
-                        usePointStyle: true, // Pakai titik bulat, bukan kotak
+                        usePointStyle: true,
                         pointStyle: 'circle',
-                        font: { family: 'Inter', size: 12 },
+                        font: { family: 'Inter', size: 12, weight: '500' },
                         color: '#475569',
                         padding: 20
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     bodyFont: { family: 'Inter', size: 13 },
-                    padding: 10,
-                    cornerRadius: 8,
+                    padding: 12,
+                    cornerRadius: 10,
+                    displayColors: false, // Hilangkan kotak warna di tooltip
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
                             const value = context.parsed;
                             const sum = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / sum) * 100).toFixed(1);
-                            return ` ${label}: ${value} (${percentage}%)`;
+                            const percentage = sum > 0 ? ((value / sum) * 100).toFixed(1) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
                         }
                     }
                 }
@@ -1467,7 +1485,6 @@ function renderStatusChart(data) {
         }
     });
 }
-
 
 // --- FUNGSI HELPER BARU (Letakkan di paling bawah file) ---
 function isToday(dateString) {
