@@ -1290,6 +1290,7 @@ function updateSubcategoryOptions(event) {
 
 // --- FUNGSI-FUNGSI CHART (MODERN REDESIGN) ---
 
+// --- public/script.js ---
 
 function renderMonthlySubcategoryChart(data) {
     const ctx = document.getElementById('subcategoryChart');
@@ -1309,22 +1310,13 @@ function renderMonthlySubcategoryChart(data) {
         return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
     });
 
-    // 2. Palette Warna Modern & Harmonis
-    // Warna dipilih agar terlihat bagus saat ditumpuk
-    const modernPalette = [
-        '#6366f1', // Indigo
-        '#10b981', // Emerald (Green)
-        '#f59e0b', // Amber (Yellow/Orange)
-        '#ef4444', // Rose (Red)
-        '#3b82f6', // Blue
-        '#8b5cf6', // Violet
-        '#06b6d4', // Cyan
-        '#ec4899', // Pink
-        '#f97316', // Orange
-        '#64748b'  // Slate (Gray)
-    ];
+    // 2. Generator Warna (Sedikit Transparan untuk Area)
+    function generateColor(index, alpha) {
+        const hue = (index * 137.508) % 360;
+        return `hsla(${hue}, 70%, 50%, ${alpha})`;
+    }
 
-    // 3. Buat Dataset
+    // 3. Buat Dataset (Konfigurasi Area Chart)
     const datasets = subcategories.map((sub, index) => {
         return {
             label: sub || 'Lainnya',
@@ -1332,17 +1324,25 @@ function renderMonthlySubcategoryChart(data) {
                 const found = data.find(d => d.month === m && d.subcategory === sub);
                 return found ? found.count : 0;
             }),
-            backgroundColor: modernPalette[index % modernPalette.length],
-            borderRadius: 6, // Sudut sedikit membulat
-            barPercentage: 0.7, // Batang tidak terlalu gemuk
-            categoryPercentage: 0.8,
-            borderSkipped: false, // agar radius berlaku di semua sudut
+            // Warna Isi (Agak transparan)
+            backgroundColor: generateColor(index, 0.2), // Opacity 0.2 agar elegan
+            // Warna Garis (Solid)
+            borderColor: generateColor(index, 1),
+            borderWidth: 2,
+            
+            // Konfigurasi Area Chart
+            fill: true,         // Isi area bawah garis
+            tension: 0.4,       // Garis melengkung halus (Curved)
+            pointRadius: 3,     // Ukuran titik data
+            pointBackgroundColor: '#fff', // Titik putih bersih
+            pointBorderWidth: 2,
+            pointHoverRadius: 6, // Membesar saat di-hover
         };
     });
 
-    // 4. Render Chart dengan Opsi Modern
+    // 4. Render Chart
     subcategoryChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'line', // Ubah tipe dasar jadi LINE
         data: {
             labels: formattedMonths,
             datasets: datasets
@@ -1356,7 +1356,7 @@ function renderMonthlySubcategoryChart(data) {
             plugins: {
                 legend: {
                     position: 'top',
-                    align: 'start', // Rata kiri
+                    align: 'start', 
                     labels: {
                         usePointStyle: true,
                         pointStyle: 'circle',
@@ -1369,13 +1369,21 @@ function renderMonthlySubcategoryChart(data) {
                 tooltip: {
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)', // Tooltip gelap
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     titleFont: { family: 'Inter', size: 13, weight: '600' },
                     bodyFont: { family: 'Inter', size: 12 },
                     padding: 12,
                     cornerRadius: 10,
-                    multiKeyBackground: 'rgba(0,0,0,0)', // Hilangkan kotak warna di dalam tooltip
+                    multiKeyBackground: 'rgba(0,0,0,0)',
                     callbacks: {
+                        labelColor: function(context) {
+                            return {
+                                borderColor: context.dataset.borderColor,
+                                backgroundColor: context.dataset.borderColor, // Pakai warna solid di tooltip
+                                borderWidth: 0,
+                                borderRadius: 2,
+                            };
+                        },
                         footer: function(tooltipItems) {
                             let total = 0;
                             tooltipItems.forEach(function(tooltipItem) {
@@ -1388,20 +1396,19 @@ function renderMonthlySubcategoryChart(data) {
             },
             scales: {
                 x: {
-                    stacked: true,
-                    grid: { display: false, drawBorder: false }, // Hilangkan grid vertikal total
+                    grid: { display: false, drawBorder: false },
                     ticks: {
                         font: { family: 'Inter', size: 11, weight: '500' },
                         color: '#64748b'
                     }
                 },
                 y: {
-                    stacked: true,
+                    stacked: true, // Tumpuk area-nya (Stacked Area)
                     beginAtZero: true,
                     grid: {
-                        color: '#e2e8f0', // Warna grid sangat halus
-                        borderDash: [6, 6], // Garis putus-putus halus
-                        drawBorder: false // Hilangkan garis poros Y
+                        color: '#e2e8f0',
+                        borderDash: [6, 6],
+                        drawBorder: false
                     },
                     ticks: {
                         precision: 0,
