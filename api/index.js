@@ -228,49 +228,65 @@ app.get('/api/stats', async (req, res) => {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    // --- PERBAIKAN: Gunakan Zona Waktu Jakarta (WIB) ---
+    // 1. Setup Tanggal (WIB)
     const now = new Date();
     const today = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    }).format(now); // Hasil: YYYY-MM-DD sesuai WIB
-
+        timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(now);
     const firstDayOfMonth = today.substring(0, 7) + '-01';
-    // ---------------------------------------------------
 
+    // 2. Filter Tanggal untuk Kartu Closed
+    const { startDate, endDate } = req.query;
+    let periodCondition = "AND DATE(last_update_time) = ?";
+    let periodParams = [today];
+    let periodLabel = "Closed Hari Ini";
+
+    if (startDate && endDate) {
+        periodCondition = "AND DATE(last_update_time) BETWEEN ? AND ?";
+        periodParams = [startDate, endDate];
+        periodLabel = "Closed (Terfilter)";
+    }
+
+    // 3. Eksekusi Query
     const [runningTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC')");
     const [runningBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') GROUP BY subcategory ORDER BY count DESC");
     
-    // Gunakan 'today' yang sudah WIB
-    const [closedTodayTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ?", [today]);
-    const [closedTodayBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ? GROUP BY subcategory ORDER BY count DESC", [today]);
+    // Query Closed (Dinamis)
+    const [closedPeriodTotal] = await db.query(`SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' ${periodCondition}`, periodParams);
+    const [closedPeriodBySubcat] = await db.query(`SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' ${periodCondition} GROUP BY subcategory ORDER BY count DESC`, periodParams);
     
+    // Query Closed Bulan Ini
     const [closedThisMonth] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) >= ?", [firstDayOfMonth]);
     
     const [statusDist] = await db.query("SELECT status, COUNT(*) as count FROM tickets GROUP BY status ORDER BY count DESC");
-    const [categoryDist] = await db.query("SELECT category, COUNT(*) as count FROM tickets GROUP BY category ORDER BY count DESC");
-    const [subcategoryDist] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets GROUP BY subcategory ORDER BY count DESC");
+
+    // --- QUERY YANG HILANG (INI PENYEBAB ERRORNYA) ---
+    const [subcategoryMonthly] = await db.query(`
+      SELECT 
+        DATE_FORMAT(tiket_time, '%Y-%m') as month, 
+        subcategory, 
+        COUNT(*) as count 
+      FROM tickets 
+      WHERE tiket_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+      GROUP BY month, subcategory 
+      ORDER BY month ASC
+    `);
+    // -------------------------------------------------
 
     res.json({
-      runningDetails: {
-        total: runningTotal[0].count,
-        bySubcategory: runningBySubcat
-      },
-      closedTodayDetails: {
-        total: closedTodayTotal[0].count,
-        bySubcategory: closedTodayBySubcat
-      },
+      periodLabel,
+      runningDetails: { total: runningTotal[0].count, bySubcategory: runningBySubcat },
+      closedPeriodDetails: { total: closedPeriodTotal[0].count, bySubcategory: closedPeriodBySubcat },
       closedThisMonth: closedThisMonth[0].count,
       statusDistribution: statusDist,
-      categoryDistribution: categoryDist,
-      subcategoryDistribution: subcategoryDist
+      
+      // Pastikan variabel ini dikirim ke frontend:
+      subcategoryMonthlyDistribution: subcategoryMonthly 
     });
+
   } catch (error) {
     console.error('Stats error:', error);
-    // Tampilkan pesan error asli untuk memudahkan debugging
-    res.status(500).json({ error: error.message }); 
+    res.status(500).json({ error: error.message });
   }
 });
 
