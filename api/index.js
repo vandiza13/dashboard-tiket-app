@@ -237,75 +237,68 @@ app.get('/api/stats', async (req, res) => {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
+    const { startDate, endDate } = req.query;
+
+    // 1. Setup Tanggal
     const now = new Date();
-    
-    // --- PERBAIKAN: Gunakan Zona Waktu Jakarta (WIB) ---
-    // Format tanggal: YYYY-MM-DD sesuai waktu Jakarta
     const today = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
+        timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit'
     }).format(now);
+    const firstDayOfMonth = today.substring(0, 7) + '-01';
 
-    // Awal bulan ini (YYYY-MM-01)
-    const firstDayOfMonth = today.substring(0, 7) + '-01'; 
-    // ----------------------------------------------------
+    // 2. Filter Dinamis untuk Closed Card
+    let periodCondition = "AND DATE(last_update_time) = ?";
+    let periodParams = [today];
+    let periodLabel = "Closed Hari Ini";
 
+    if (startDate && endDate) {
+        periodCondition = "AND DATE(last_update_time) BETWEEN ? AND ?";
+        periodParams = [startDate, endDate];
+        periodLabel = "Closed (Terfilter)";
+    }
+
+    // 3. Eksekusi Query
     const [runningTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC')");
+    
+    // Hapus runningBySubcat jika ingin diganti chart bulanan, atau biarkan untuk list text
     const [runningBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') GROUP BY subcategory ORDER BY count DESC");
     
-    // Query menggunakan variabel 'today' (Waktu Jakarta)
-    const [closedTodayTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ?", [today]);
-    const [closedTodayBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ? GROUP BY subcategory ORDER BY count DESC", [today]);
+    const [closedPeriodTotal] = await db.query(`SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' ${periodCondition}`, periodParams);
+    const [closedPeriodBySubcat] = await db.query(`SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' ${periodCondition} GROUP BY subcategory ORDER BY count DESC`, periodParams);
     
     const [closedThisMonth] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) >= ?", [firstDayOfMonth]);
     
     const [statusDist] = await db.query("SELECT status, COUNT(*) as count FROM tickets GROUP BY status ORDER BY count DESC");
-    const [categoryDist] = await db.query("SELECT category, COUNT(*) as count FROM tickets GROUP BY category ORDER BY count DESC");
-    const [subcategoryDist] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets GROUP BY subcategory ORDER BY count DESC");
+
+    // --- QUERY BARU: Distribusi Kategori Per Bulan (6 Bulan Terakhir) ---
+    // Mengambil data berdasarkan tiket_time (waktu tiket dibuat)
+    const [subcategoryMonthly] = await db.query(`
+      SELECT 
+        DATE_FORMAT(tiket_time, '%Y-%m') as month, 
+        subcategory, 
+        COUNT(*) as count 
+      FROM tickets 
+      WHERE tiket_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+      GROUP BY month, subcategory 
+      ORDER BY month ASC
+    `);
+    // -------------------------------------------------------------------
 
     res.json({
-      runningDetails: {
-        total: runningTotal[0].count,
-        bySubcategory: runningBySubcat
-      },
-      closedTodayDetails: {
-        total: closedTodayTotal[0].count,
-        bySubcategory: closedTodayBySubcat
-      },
+      periodLabel,
+      runningDetails: { total: runningTotal[0].count, bySubcategory: runningBySubcat },
+      closedPeriodDetails: { total: closedPeriodTotal[0].count, bySubcategory: closedPeriodBySubcat },
       closedThisMonth: closedThisMonth[0].count,
       statusDistribution: statusDist,
-      categoryDistribution: categoryDist,
-      subcategoryDistribution: subcategoryDist
+      subcategoryMonthlyDistribution: subcategoryMonthly // <-- Kirim data baru ini
     });
+
   } catch (error) {
     console.error('Stats error:', error);
-    res.status(500).json({ error: error.message }); 
+    res.status(500).json({ error: error.message });
   }
 });
 
-
-app.get('/api/stats/closed-trend', async (req, res) => {
-  try {
-    const user = await protect(req);
-    restrictTo(user, ['Admin', 'User', 'View']);
-
-    const days = parseInt(req.query.days) || 30;
-    const [rows] = await db.query(`
-      SELECT DATE(last_update_time) as date, COUNT(*) as count
-      FROM tickets
-      WHERE status = 'CLOSED' AND last_update_time >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-      GROUP BY DATE(last_update_time)
-      ORDER BY date ASC
-    `, [days]);
-
-    res.json(rows);
-  } catch (error) {
-    console.error('Trend error:', error);
-    res.status(500).json({ error: 'Gagal mengambil data trend' });
-  }
-});
 
 // ==================== TICKETS ROUTES ==================
 

@@ -506,7 +506,7 @@ async function fetchAndRenderStats() {
             closedListDiv.innerHTML = '<p class="text-center text-muted mt-3">Belum ada tiket yang selesai hari ini.</p>';
         }
         
-        renderSubcategoryChart(stats.subcategoryDistribution);
+        renderMonthlySubcategoryChart(stats.subcategoryMonthlyDistribution);
         renderStatusChart(stats.statusDistribution);
 
     } catch(error) {
@@ -1289,7 +1289,9 @@ function updateSubcategoryOptions(event) {
 
 // --- FUNGSI-FUNGSI CHART (MODERN REDESIGN) ---
 
-function renderSubcategoryChart(data) {
+// --- public/script.js ---
+
+function renderMonthlySubcategoryChart(data) {
     const ctx = document.getElementById('subcategoryChart');
     if (!ctx) return;
 
@@ -1297,75 +1299,102 @@ function renderSubcategoryChart(data) {
         subcategoryChart.destroy();
     }
 
-    const labels = data.map(item => item.subcategory || 'Tidak Dikategorikan');
-    const counts = data.map(item => item.count);
+    // 1. Proses Data
+    const months = [...new Set(data.map(item => item.month))];
+    const subcategories = [...new Set(data.map(item => item.subcategory))];
 
-    // Palette Warna Modern (Tailwind-ish)
-    const modernColors = [
-        '#3b82f6', // Blue
-        '#10b981', // Emerald
-        '#8b5cf6', // Violet
-        '#f59e0b', // Amber
-        '#ef4444', // Red
-        '#06b6d4', // Cyan
-        '#ec4899', // Pink
-        '#6366f1', // Indigo
+    // Format Bulan (Nov 2025)
+    const formattedMonths = months.map(m => {
+        const [y, mo] = m.split('-');
+        const date = new Date(y, mo - 1);
+        return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+    });
+
+    // 2. Palette Warna Luas (Untuk banyak subkategori)
+    const palette = [
+        '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+        '#ec4899', '#06b6d4', '#6366f1', '#84cc16', '#f43f5e',
+        '#64748b', '#14b8a6', '#d946ef', '#f97316', '#a855f7'
     ];
 
-    // Ulangi warna jika data lebih banyak dari palette
-    const backgroundColors = data.map((_, index) => modernColors[index % modernColors.length]);
+    // 3. Buat Dataset
+    const datasets = subcategories.map((sub, index) => {
+        return {
+            label: sub || 'Lainnya',
+            data: months.map(m => {
+                const found = data.find(d => d.month === m && d.subcategory === sub);
+                return found ? found.count : 0;
+            }),
+            // Ambil warna dari palette secara berurutan
+            backgroundColor: palette[index % palette.length],
+            borderRadius: 4,
+            barPercentage: 0.6,
+        };
+    });
 
+    // 4. Render Chart
     subcategoryChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
-            datasets: [{
-                label: 'Jumlah Tiket',
-                data: counts,
-                backgroundColor: backgroundColors,
-                borderRadius: 6, // Sudut batang membulat
-                barPercentage: 0.6, // Batang tidak terlalu gemuk
-                borderSkipped: false,
-            }]
+            labels: formattedMonths,
+            datasets: datasets
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }, // Sembunyikan legenda untuk bar chart
+                legend: {
+                    position: 'top',
+                    align: 'start', // Rata kiri agar rapi jika label banyak
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { family: 'Inter', size: 10 },
+                        padding: 10,
+                        boxWidth: 8
+                    }
+                },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)', // Tooltip gelap
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     titleFont: { family: 'Inter', size: 13 },
-                    bodyFont: { family: 'Inter', size: 13 },
+                    bodyFont: { family: 'Inter', size: 12 },
                     padding: 10,
                     cornerRadius: 8,
-                    displayColors: false
+                    callbacks: {
+                        footer: function(tooltipItems) {
+                            let total = 0;
+                            tooltipItems.forEach(function(tooltipItem) {
+                                total += tooltipItem.parsed.y;
+                            });
+                            return 'Total: ' + total;
+                        }
+                    }
                 }
             },
             scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: {
+                        font: { family: 'Inter', size: 11 },
+                        color: '#64748b'
+                    }
+                },
                 y: {
+                    stacked: true,
                     beginAtZero: true,
-                    ticks: { 
+                    grid: {
+                        color: '#f1f5f9',
+                        borderDash: [5, 5]
+                    },
+                    border: { display: false },
+                    ticks: {
                         precision: 0,
                         font: { family: 'Inter', size: 11 },
                         color: '#64748b'
-                    },
-                    grid: {
-                        color: '#f1f5f9', // Grid sangat halus
-                        borderDash: [5, 5] // Grid putus-putus
-                    },
-                    border: { display: false } // Hilangkan garis poros Y
-                },
-                x: {
-                    ticks: {
-                        font: { family: 'Inter', size: 11 },
-                        color: '#64748b',
-                        autoSkip: false,
-                        maxRotation: 45,
-                        minRotation: 0
-                    },
-                    grid: { display: false }, // Hilangkan grid vertikal
-                    border: { display: false }
+                    }
                 }
             }
         }
