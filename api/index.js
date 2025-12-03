@@ -135,13 +135,11 @@ app.put('/api/profile/change-password', async (req, res) => {
 
 // ==================== USER MANAGEMENT (ADMIN) ROUTES ====================
 
-// GET: Ambil semua pengguna (Hanya Admin)
 app.get('/api/users', async (req, res) => {
   try {
     const adminUser = await protect(req);
     restrictTo(adminUser, ['Admin']);
 
-    // Ambil semua pengguna KECUALI admin yang sedang login
     const [users] = await db.query(
       "SELECT id, username, role, created_at FROM users WHERE id != ? ORDER BY username ASC",
       [adminUser.userId]
@@ -156,7 +154,6 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// PUT: Update role pengguna (Hanya Admin)
 app.put('/api/users/:id', async (req, res) => {
   try {
     const adminUser = await protect(req);
@@ -180,6 +177,24 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const adminUser = await protect(req);
+    restrictTo(adminUser, ['Admin']);
+
+    const { id } = req.params;
+    await db.query('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ message: 'Pengguna berhasil dihapus' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
+      return res.status(403).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Gagal menghapus pengguna' });
+  }
+});
+
+// FITUR BARU: Reset Password Pengguna oleh Admin
 app.put('/api/users/:id/reset-password', async (req, res) => {
   try {
     const adminUser = await protect(req);
@@ -205,100 +220,81 @@ app.put('/api/users/:id/reset-password', async (req, res) => {
   }
 });
 
-// DELETE: Hapus pengguna (Hanya Admin)
-app.delete('/api/users/:id', async (req, res) => {
-  try {
-    const adminUser = await protect(req);
-    restrictTo(adminUser, ['Admin']);
 
-    const { id } = req.params;
-
-    // TODO: Anda mungkin perlu menangani tiket/data lain yang terkait dengan user ini
-    // (misalnya, set 'created_by_user_id' di tiket menjadi NULL atau 'deleted_user')
-
-    await db.query('DELETE FROM users WHERE id = ?', [id]);
-    res.json({ message: 'Pengguna berhasil dihapus' });
-  } catch (error) {
-    console.error('Delete user error:', error);
-    if (error.message.includes('Akses ditolak') || error.message.includes('tidak memiliki izin')) {
-      return res.status(403).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Gagal menghapus pengguna' });
-  }
-});
-
-
-// ==================== STATS ROUTES ====================
-
-// --- api/index.js ---
+// ==================== STATS ROUTES (PERBAIKAN ZONA WAKTU) ====================
 
 app.get('/api/stats', async (req, res) => {
   try {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    const { startDate, endDate } = req.query;
-
-    // 1. Setup Tanggal
+    // --- PERBAIKAN: Gunakan Zona Waktu Jakarta (WIB) ---
     const now = new Date();
     const today = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit'
-    }).format(now);
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(now); // Hasil: YYYY-MM-DD sesuai WIB
+
     const firstDayOfMonth = today.substring(0, 7) + '-01';
+    // ---------------------------------------------------
 
-    // 2. Filter Dinamis untuk Closed Card
-    let periodCondition = "AND DATE(last_update_time) = ?";
-    let periodParams = [today];
-    let periodLabel = "Closed Hari Ini";
-
-    if (startDate && endDate) {
-        periodCondition = "AND DATE(last_update_time) BETWEEN ? AND ?";
-        periodParams = [startDate, endDate];
-        periodLabel = "Closed (Terfilter)";
-    }
-
-    // 3. Eksekusi Query
     const [runningTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC')");
-    
-    // Hapus runningBySubcat jika ingin diganti chart bulanan, atau biarkan untuk list text
     const [runningBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status IN ('OPEN', 'SC') GROUP BY subcategory ORDER BY count DESC");
     
-    const [closedPeriodTotal] = await db.query(`SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' ${periodCondition}`, periodParams);
-    const [closedPeriodBySubcat] = await db.query(`SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' ${periodCondition} GROUP BY subcategory ORDER BY count DESC`, periodParams);
+    // Gunakan 'today' yang sudah WIB
+    const [closedTodayTotal] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ?", [today]);
+    const [closedTodayBySubcat] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) = ? GROUP BY subcategory ORDER BY count DESC", [today]);
     
     const [closedThisMonth] = await db.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'CLOSED' AND DATE(last_update_time) >= ?", [firstDayOfMonth]);
     
     const [statusDist] = await db.query("SELECT status, COUNT(*) as count FROM tickets GROUP BY status ORDER BY count DESC");
-
-    // --- QUERY BARU: Distribusi Kategori Per Bulan (6 Bulan Terakhir) ---
-    // Mengambil data berdasarkan tiket_time (waktu tiket dibuat)
-    const [subcategoryMonthly] = await db.query(`
-      SELECT 
-        DATE_FORMAT(tiket_time, '%Y-%m') as month, 
-        subcategory, 
-        COUNT(*) as count 
-      FROM tickets 
-      WHERE tiket_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-      GROUP BY month, subcategory 
-      ORDER BY month ASC
-    `);
-    // -------------------------------------------------------------------
+    const [categoryDist] = await db.query("SELECT category, COUNT(*) as count FROM tickets GROUP BY category ORDER BY count DESC");
+    const [subcategoryDist] = await db.query("SELECT subcategory, COUNT(*) as count FROM tickets GROUP BY subcategory ORDER BY count DESC");
 
     res.json({
-      periodLabel,
-      runningDetails: { total: runningTotal[0].count, bySubcategory: runningBySubcat },
-      closedPeriodDetails: { total: closedPeriodTotal[0].count, bySubcategory: closedPeriodBySubcat },
+      runningDetails: {
+        total: runningTotal[0].count,
+        bySubcategory: runningBySubcat
+      },
+      closedTodayDetails: {
+        total: closedTodayTotal[0].count,
+        bySubcategory: closedTodayBySubcat
+      },
       closedThisMonth: closedThisMonth[0].count,
       statusDistribution: statusDist,
-      subcategoryMonthlyDistribution: subcategoryMonthly // <-- Kirim data baru ini
+      categoryDistribution: categoryDist,
+      subcategoryDistribution: subcategoryDist
     });
-
   } catch (error) {
     console.error('Stats error:', error);
-    res.status(500).json({ error: error.message });
+    // Tampilkan pesan error asli untuk memudahkan debugging
+    res.status(500).json({ error: error.message }); 
   }
 });
 
+app.get('/api/stats/closed-trend', async (req, res) => {
+  try {
+    const user = await protect(req);
+    restrictTo(user, ['Admin', 'User', 'View']);
+
+    const days = parseInt(req.query.days) || 30;
+    // Query ini aman karena database sudah diset Timezone +07:00 di koneksi pool
+    const [rows] = await db.query(`
+      SELECT DATE(last_update_time) as date, COUNT(*) as count
+      FROM tickets
+      WHERE status = 'CLOSED' AND last_update_time >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      GROUP BY DATE(last_update_time)
+      ORDER BY date ASC
+    `, [days]);
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Trend error:', error);
+    res.status(500).json({ error: 'Gagal mengambil data trend' });
+  }
+});
 
 // ==================== TICKETS ROUTES ==================
 
@@ -464,7 +460,6 @@ app.get('/api/tickets/closed/export', async (req, res) => {
       return res.status(404).json({ error: 'Tidak ada data untuk diekspor pada rentang tanggal ini.' });
     }
 
-    // Konversi datetime ke format WIB untuk Excel
     const ticketsFormatted = tickets.map(ticket => ({
       ...ticket,
       tiket_time: formatDateTimeForExcel(ticket.tiket_time),
@@ -490,26 +485,17 @@ app.get('/api/tickets/closed/export', async (req, res) => {
 
     worksheet.addRows(ticketsFormatted);
 
-    // Styling
     worksheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFF' } };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '366092' }
-      };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '366092' } };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
-      cell.border = {
-        top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
-      };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     });
 
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         row.eachCell((cell) => {
-          cell.border = {
-            top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         });
       }
     });
@@ -517,19 +503,46 @@ app.get('/api/tickets/closed/export', async (req, res) => {
     worksheet.getColumn('deskripsi').alignment = { wrapText: true };
     worksheet.getColumn('update_progres').alignment = { wrapText: true };
 
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="Laporan_Tiket_Closed_${new Date().toISOString().slice(0,10)}.xlsx"`
-    );
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="Laporan_Tiket_Closed_${new Date().toISOString().slice(0,10)}.xlsx"`);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ error: 'Gagal mengekspor data. Terjadi kesalahan di server.' });
+  }
+});
+
+// FITUR BARU: BULK IMPORT TIKET (CSV)
+app.post('/api/tickets/bulk', async (req, res) => {
+  try {
+    const user = await protect(req);
+    restrictTo(user, ['Admin', 'User']);
+
+    const tickets = req.body;
+    
+    if (!Array.isArray(tickets) || tickets.length === 0) {
+      return res.status(400).json({ error: 'Data import kosong atau format salah.' });
+    }
+
+    const values = tickets.map(t => [
+      t.category, t.subcategory, t.id_tiket, t.tiket_time, t.deskripsi, 'OPEN', user.userId, user.userId, new Date()
+    ]);
+
+    const query = `INSERT IGNORE INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES ?`;
+
+    const [result] = await db.query(query, [values]);
+
+    res.json({ 
+      message: 'Proses import selesai', 
+      totalData: tickets.length,
+      berhasilMasuk: result.affectedRows,
+      duplikatDilewati: tickets.length - result.affectedRows
+    });
+
+  } catch (error) {
+    console.error('Bulk import error:', error);
+    res.status(500).json({ error: 'Gagal melakukan import data: ' + error.message });
   }
 });
 
@@ -543,7 +556,6 @@ app.post('/api/tickets', async (req, res) => {
       return res.status(400).json({ error: 'Semua field harus diisi' });
     }
 
-    // Gunakan NOW() yang sudah timezone-aware dari pool connection
     const [result] = await db.query(
     'INSERT INTO tickets (category, subcategory, id_tiket, tiket_time, deskripsi, status, created_by_user_id, updated_by_user_id, last_update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
     [category, subcategory, id_tiket, tiket_time, deskripsi, 'OPEN', user.userId, user.userId]
@@ -557,11 +569,9 @@ app.post('/api/tickets', async (req, res) => {
     res.status(201).json({ message: 'Tiket berhasil ditambahkan', ticketId: result.insertId });
 
     } catch (error) {
-  // --- TAMBAHKAN PENGECEKAN INI ---
   if (error.code === 'ER_DUP_ENTRY') {
     return res.status(400).json({ error: 'ID Tiket sudah ada dalam Dashboard' });
   }
-  // ---------------------------------
   console.error('Create ticket error:', error);
   res.status(500).json({ error: 'Terjadi kesalahan server saat menambahkan tiket' });
 }
@@ -580,7 +590,6 @@ app.put('/api/tickets/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tiket tidak ditemukan' });
     }
 
-    // Gunakan NOW() yang sudah timezone-aware
     await db.query(
       'UPDATE tickets SET category = ?, subcategory = ?, status = ?, update_progres = ?, updated_by_user_id = ?, last_update_time = NOW() WHERE id = ?',
       [category, subcategory, status, update_progres, user.userId, id]
@@ -749,13 +758,11 @@ app.delete('/api/technicians/:nik', async (req, res) => {
   }
 });
 
-// Helper function untuk format datetime ke WIB untuk Excel
 function formatDateTimeForExcel(datetime) {
   if (!datetime) return '';
   const date = new Date(datetime);
   if (isNaN(date.getTime())) return datetime;
   
-  // Format: DD/MM/YYYY HH:mm WIB
   const options = {
     timeZone: 'Asia/Jakarta',
     year: 'numeric',
@@ -769,5 +776,4 @@ function formatDateTimeForExcel(datetime) {
   return new Intl.DateTimeFormat('id-ID', options).format(date) + ' WIB';
 }
 
-// Export untuk Vercel
 module.exports = app;
