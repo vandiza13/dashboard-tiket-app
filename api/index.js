@@ -792,8 +792,7 @@ function formatDateTimeForExcel(datetime) {
   return new Intl.DateTimeFormat('id-ID', options).format(date) + ' WIB';
 }
 
-
-// --- FITUR: LEADERBOARD PRODUKTIVITAS (SEMUA TEKNISI) ---
+// --- FITUR: LEADERBOARD PRODUKTIVITAS (ALL TECHNICIANS - FIXED) ---
 app.get('/api/productivity/leaderboard', async (req, res) => {
   try {
     const user = await protect(req);
@@ -802,12 +801,15 @@ app.get('/api/productivity/leaderboard', async (req, res) => {
     // 1. Tentukan Tanggal Mulai Sistem
     const SYSTEM_START_DATE = '2025-11-01'; 
 
-    // 2. Query Hitung Tiket Closed per Teknisi (ALL TECHNICIANS)
-    // Perubahan:
-    // - LEFT JOIN: Agar teknisi yang belum punya tiket tetap muncul (skor 0)
-    // - WHERE tech.is_active = 1: Hanya tampilkan teknisi yang masih aktif bekerja
-    // - Filter Tiket dipindah ke dalam ON clause agar LEFT JOIN bekerja benar
-    
+    // --- Helper Format Tanggal (Ditaruh di dalam agar aman) ---
+    const formatDateIndo = (dateString) => {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('id-ID', options);
+    };
+    // ---------------------------------------------------------
+
+    // 2. Query Hitung Tiket Closed (LEFT JOIN)
+    // Menampilkan SEMUA teknisi (Aktif), walaupun belum ada tiket (skor 0)
     const query = `
       SELECT 
         tech.nik, 
@@ -833,7 +835,8 @@ app.get('/api/productivity/leaderboard', async (req, res) => {
 
   } catch (error) {
     console.error('Leaderboard error:', error);
-    res.status(500).json({ error: 'Gagal memuat data leaderboard' });
+    // Tampilkan pesan error asli agar kita tahu jika ada masalah SQL
+    res.status(500).json({ error: error.message }); 
   }
 });
 
