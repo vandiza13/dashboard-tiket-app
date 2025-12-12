@@ -516,46 +516,6 @@ button[onclick="generateReport()"] { background: linear-gradient(135deg, #06b6d4
   #stats-summary-row { gap: 16px; }
 }
 
-/* ==================== PRODUCTIVITY / LEADERBOARD STYLES ==================== */
-
-.bg-soft-primary {
-    background-color: rgba(59, 130, 246, 0.1) !important;
-}
-
-.text-brown {
-    color: #cd7f32; /* Warna Perunggu */
-}
-
-/* Avatar Bulat */
-.avatar-circle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Inter', sans-serif;
-}
-
-.avatar-circle.small {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-/* Shadow Biru Glow untuk Juara 1 */
-.shadow-primary {
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-}
-
-/* Responsif untuk Podium */
-@media (max-width: 767.98px) {
-    .createPodiumCard {
-        transform: none !important; /* Matikan efek naik turun di HP agar rapi */
-        margin-bottom: 1rem;
-    }
-}
 
 /* ==================== FOOTER ==================== */
 footer {
@@ -564,3 +524,157 @@ footer {
 }
 footer a { color: #3b82f6; text-decoration: none; font-weight: 600; }
 footer a:hover { text-decoration: underline; color: #2563eb; }
+
+
+/* ==================== ELEGANT PRODUCTIVITY LEADERBOARD STYLES ==================== */
+
+/* --- Header Section --- */
+.productivity-header {
+    /* Gradient biru tua ke ungu yang mewah */
+    background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+    box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
+}
+
+/* Pattern halus di background header */
+.header-bg-pattern {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0.1;
+    background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0);
+    background-size: 20px 20px;
+    z-index: 0;
+}
+
+.backdrop-blur {
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+/* --- Podium Layout & Responsiveness --- */
+.podium-container {
+    min-height: 450px; /* Tinggi minimum agar sejajar */
+}
+
+@media (max-width: 767.98px) {
+    .podium-container {
+        align-items: center !important; /* Di HP jadi lurus vertikal */
+        min-height: auto;
+    }
+    .scale-up-center, .scale-side {
+        transform: none !important; /* Matikan efek skala di HP */
+        margin-top: 0 !important;
+    }
+    /* Urutan tampilan di HP: Emas -> Perak -> Perunggu */
+    .order-1 { order: 2 !important; } /* Perak jadi kedua */
+    .order-2 { order: 1 !important; } /* Emas jadi pertama */
+    .order-3 { order: 3 !important; } /* Perunggu tetap ketiga */
+}
+
+/* --- Podium Cards Base Styles --- */
+.podium-card {
+    border-radius: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.podium-card:hover {
+    transform: translateY(-10px) scale(1.02); /* Efek hover naik sedikit */
+}
+
+.card-header-gradient {
+    height: 120px; /* Tinggi area warna atas */
+}
+
+.mt-n4 { margin-top: -1.5rem !important; } /* Menarik body ke atas header */
+.letter-spacing-1 { letter-spacing: 1px; }
+
+/* --- Avatar Styles --- */
+.avatar-podium {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border-width: 3px; border-style: solid;
+    position: relative; top: -40px; /* Setengah keluar dari body */
+    margin-bottom: -30px !important;
+}
+.avatar-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* Floating Rank Badge (Mahkota/Medali) */
+.rank-badge-floating {
+    position: absolute;
+    top: -15px; left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    width: 45px; height: 45px;
+    line-height: 45px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    border: 3px solid white;
+    z-index: 10;
+}
+
+/* --- SCORE STYLES --- */
+.score-number {
+    line-height: 1;
+    letter-spacing: -1px;
+}
+
+/* ==================== THEME COLORS (GOLD, SILVER, BRONZE) ==================== */
+
+/* --- TEMA EMAS (Rank 1) --- */
+.theme-gold .card-header-gradient {
+    background: linear-gradient(135deg, #FDC830 0%, #F37335 100%); /* Gradien Emas Mewah */
+}
+.scale-up-center {
+    transform: scale(1.1); /* Lebih besar */
+    z-index: 10;
+    box-shadow: 0 20px 40px -10px rgba(243, 115, 53, 0.4) !important; /* Glow Oranye/Emas */
+}
+.border-gold { border-color: #FDC830 !important; }
+.text-gold-dark { color: #d97706; /* Warna teks emas tua */ }
+
+
+/* --- TEMA PERAK (Rank 2) --- */
+.theme-silver .card-header-gradient {
+    background: linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%); /* Gradien Perak Kebiruan */
+}
+.scale-side {
+    transform: translateY(30px) scale(0.95); /* Lebih kecil dan turun sedikit */
+    z-index: 5;
+}
+.theme-silver.shadow-lg {
+    box-shadow: 0 15px 30px -10px rgba(207, 222, 243, 0.5) !important; /* Glow Perak Biru */
+}
+.border-silver { border-color: #CFDEF3 !important; }
+.text-silver-dark { color: #64748b; /* Warna teks abu tua */ }
+.theme-silver .rank-badge-floating { font-size: 1.3rem; width: 40px; height: 40px; line-height: 40px; top: -10px;} /* Sedikit lebih kecil */
+
+
+/* --- TEMA PERUNGGU (Rank 3) --- */
+.theme-bronze .card-header-gradient {
+    background: linear-gradient(135deg, #e6ceac 0%, #c7a17a 100%); /* Gradien Perunggu/Coklat */
+}
+.theme-bronze.shadow-lg {
+    box-shadow: 0 15px 30px -10px rgba(199, 161, 122, 0.5) !important; /* Glow Perunggu */
+}
+.border-bronze { border-color: #c7a17a !important; }
+.text-bronze-dark { color: #8c5e35; /* Warna teks coklat tua */ }
+.theme-bronze .rank-badge-floating { font-size: 1.3rem; width: 40px; height: 40px; line-height: 40px; top: -10px;}
+
+
+/* --- Table Styles Refinement --- */
+.custom-table thead th {
+    border-bottom: none;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+}
+.custom-table tbody td {
+    border-bottom: 1px solid #f1f5f9;
+    padding-top: 1rem; padding-bottom: 1rem;
+}
+.custom-table tbody tr:hover {
+    background-color: #f8fafc; /* Hover sangat halus */
+}
