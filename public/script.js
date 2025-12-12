@@ -1560,7 +1560,7 @@ async function fetchAndRenderLeaderboard() {
                     <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 px-3 py-2 rounded-pill mb-3 backdrop-blur">
                         <i class="bi bi-calendar-check me-1"></i> ${result.period}
                     </span>
-                    <h2 class="fw-bolder text-white mb-2 display-6">Hall of Fame: Teknisi Terbaik</h2>
+                    <h2 class="fw-bolder text-white mb-2 display-6">Hall of Fame</h2>
                     <p class="text-white text-opacity-75 fs-5">Merayakan dedikasi dan kerja keras tim lapangan.</p>
                 </div>
             </div>
