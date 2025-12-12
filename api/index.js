@@ -799,7 +799,7 @@ app.get('/api/productivity/leaderboard', async (req, res) => {
     restrictTo(user, ['Admin', 'User', 'View']);
 
     // 1. Tentukan Tanggal Mulai Sistem
-    const SYSTEM_START_DATE = '2025-11-01'; 
+    const SYSTEM_START_DATE = '2025-12-12'; 
 
     // --- Helper Format Tanggal (Ditaruh di dalam agar aman) ---
     const formatDateIndo = (dateString) => {
