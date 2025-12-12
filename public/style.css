@@ -516,6 +516,47 @@ button[onclick="generateReport()"] { background: linear-gradient(135deg, #06b6d4
   #stats-summary-row { gap: 16px; }
 }
 
+/* ==================== PRODUCTIVITY / LEADERBOARD STYLES ==================== */
+
+.bg-soft-primary {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.text-brown {
+    color: #cd7f32; /* Warna Perunggu */
+}
+
+/* Avatar Bulat */
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+}
+
+.avatar-circle.small {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Shadow Biru Glow untuk Juara 1 */
+.shadow-primary {
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+/* Responsif untuk Podium */
+@media (max-width: 767.98px) {
+    .createPodiumCard {
+        transform: none !important; /* Matikan efek naik turun di HP agar rapi */
+        margin-bottom: 1rem;
+    }
+}
+
 /* ==================== FOOTER ==================== */
 footer {
   background: transparent; color: #64748b; font-size: 0.9rem;

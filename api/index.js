@@ -792,4 +792,58 @@ function formatDateTimeForExcel(datetime) {
   return new Intl.DateTimeFormat('id-ID', options).format(date) + ' WIB';
 }
 
+// --- FITUR: LEADERBOARD PRODUKTIVITAS (TERFILTER) ---
+app.get('/api/productivity/leaderboard', async (req, res) => {
+  try {
+    const user = await protect(req);
+    restrictTo(user, ['Admin', 'User', 'View']);
+
+    // 1. Tentukan Tanggal Mulai Sistem (Hardcoded sesuai waktu deploy)
+    // Ubah tanggal ini sesuai tanggal peluncuran sistem yang sebenarnya
+    const SYSTEM_START_DATE = '2025-11-01'; 
+
+    // 2. Query Hitung Tiket Closed per Teknisi
+    // Filter Khusus:
+    // - Status: CLOSED
+    // - Waktu: Sejak SYSTEM_START_DATE
+    // - Kategori: MTEL, UMT, dan CENTRATAMA (FSI ada di dalam Centratama)
+    // - SQUAT: TIDAK DIHITUNG
+    
+    const query = `
+      SELECT 
+        tech.nik, 
+        tech.name, 
+        COUNT(tt.ticket_id) as total_closed
+      FROM technicians tech
+      JOIN ticket_technicians tt ON tech.nik = tt.technician_nik
+      JOIN tickets t ON tt.ticket_id = t.id
+      WHERE t.status = 'CLOSED' 
+        AND DATE(t.last_update_time) >= ?
+        AND t.category IN ('MTEL', 'UMT', 'CENTRATAMA') 
+      GROUP BY tech.nik, tech.name
+      ORDER BY total_closed DESC
+      LIMIT 10
+    `;
+
+    const [leaderboard] = await db.query(query, [SYSTEM_START_DATE]);
+
+    res.json({
+      period: `Periode: Sejak Awal Sistem (${formatDateIndo(SYSTEM_START_DATE)})`,
+      data: leaderboard
+    });
+
+  } catch (error) {
+    console.error('Leaderboard error:', error);
+    res.status(500).json({ error: 'Gagal memuat data leaderboard' });
+  }
+});
+
+// Helper kecil untuk memformat tanggal di label periode (Opsional, taruh di paling bawah file api/index.js)
+function formatDateIndo(dateString) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('id-ID', options);
+}
+
+
+
 module.exports = app;

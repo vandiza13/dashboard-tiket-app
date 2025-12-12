@@ -165,6 +165,12 @@ async function router() {
             if (statsSummaryContainer) statsSummaryContainer.style.display = 'block';
             await fetchAndRenderStats();
             break;
+        case '#productivity':
+            pageTitle.innerText = 'Produktifitas Teknisi';
+            mainActions.style.display = 'none';
+            if (statsSummaryContainer) statsSummaryContainer.style.display = 'none';
+            await fetchAndRenderLeaderboard();
+            break;    
         case '#profile':
             pageTitle.innerText = 'Profil Pengguna';
             mainActions.style.display = 'none';
@@ -1511,4 +1517,136 @@ function isToday(dateString) {
     const strNow = new Intl.DateTimeFormat('id-ID', options).format(dateNow);
     
     return strCheck === strNow;
+}
+
+// --- FUNGSI PRODUKTIVITAS ---
+
+async function fetchAndRenderLeaderboard() {
+    const contentArea = document.getElementById('content-area');
+    contentArea.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Menghitung performa tim...</p></div>`;
+
+    try {
+        const response = await fetch('/api/productivity/leaderboard', { headers: authHeaders });
+        if (!response.ok) throw new Error('Gagal mengambil data');
+        
+        const result = await response.json();
+        const data = result.data;
+
+        if (data.length === 0) {
+            contentArea.innerHTML = `<div class="alert alert-info text-center">Belum ada data produktivitas untuk bulan ini.</div>`;
+            return;
+        }
+
+        // Pisahkan Top 3 dan Sisanya
+        const top3 = data.slice(0, 3);
+        const rest = data.slice(3);
+
+        let html = `
+            <div class="row justify-content-center mb-5">
+                <div class="col-12 text-center mb-4">
+                    <span class="badge bg-soft-primary text-primary px-3 py-2 rounded-pill mb-2">${result.period}</span>
+                    <h4 class="fw-bold text-dark">Top Performer Bulan Ini</h4>
+                </div>
+        `;
+
+        // Render Podium (Top 3)
+        if (top3.length > 0) {
+            // Juara 2 (Kiri)
+            if (top3[1]) html += createPodiumCard(top3[1], 2);
+            // Juara 1 (Tengah - Besar)
+            if (top3[0]) html += createPodiumCard(top3[0], 1);
+            // Juara 3 (Kanan)
+            if (top3[2]) html += createPodiumCard(top3[2], 3);
+        }
+
+        html += `</div>`;
+
+        // Render Sisa Leaderboard (List)
+        if (rest.length > 0) {
+            html += `
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-3 px-4">
+                    <h6 class="mb-0 fw-bold text-secondary">Peringkat Selanjutnya</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4" style="width: 10%">#</th>
+                                <th style="width: 60%">Nama Teknisi</th>
+                                <th class="text-end pe-4" style="width: 30%">Tiket Closed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            rest.forEach((tech, index) => {
+                html += `
+                    <tr>
+                        <td class="ps-4 fw-bold text-muted">${index + 4}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle small bg-light text-secondary me-3">
+                                    ${tech.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span class="fw-medium text-dark">${tech.name}</span>
+                            </div>
+                        </td>
+                        <td class="text-end pe-4">
+                            <span class="badge bg-light text-dark border px-3">${tech.total_closed}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div></div>`;
+        }
+
+        contentArea.innerHTML = html;
+
+    } catch (error) {
+        contentArea.innerHTML = `<div class="alert alert-danger text-center">${error.message}</div>`;
+    }
+}
+
+function createPodiumCard(tech, rank) {
+    let colorClass, icon, scale, order;
+    
+    if (rank === 1) {
+        colorClass = 'text-warning'; // Emas
+        icon = '👑';
+        scale = 'transform: scale(1.1); z-index: 10;';
+        order = 'order-2'; // Tengah
+    } else if (rank === 2) {
+        colorClass = 'text-secondary'; // Perak
+        icon = '🥈';
+        scale = 'transform: translateY(20px);';
+        order = 'order-1'; // Kiri
+    } else {
+        colorClass = 'text-brown'; // Perunggu (Custom CSS nanti)
+        icon = '🥉';
+        scale = 'transform: translateY(20px);';
+        order = 'order-3'; // Kanan
+    }
+
+    return `
+        <div class="col-4 col-md-3 ${order} mb-4">
+            <div class="card border-0 shadow-sm text-center py-4 h-100 position-relative" style="${scale} border-radius: 1.5rem; transition: transform 0.3s;">
+                <div class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-white shadow-sm border px-3 py-2 text-dark fs-5">
+                    ${icon} #${rank}
+                </div>
+                <div class="card-body">
+                    <div class="avatar-circle mx-auto mb-3 fw-bold fs-4 ${rank === 1 ? 'bg-gradient-primary text-white shadow-primary' : 'bg-light text-secondary'}">
+                        ${tech.name.charAt(0).toUpperCase()}
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1 text-truncate px-2">${tech.name}</h5>
+                    <small class="text-muted d-block mb-3">${tech.nik}</small>
+                    <div class="py-2 px-3 rounded-3 bg-soft-primary d-inline-block">
+                        <span class="fw-bold fs-4 text-primary">${tech.total_closed}</span>
+                        <span class="small text-muted d-block" style="font-size: 0.7rem;">Tiket Selesai</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
