@@ -800,13 +800,12 @@ app.get('/api/productivity/leaderboard', async (req, res) => {
 
     // 1. Tentukan Tanggal Mulai Sistem (Hardcoded sesuai waktu deploy)
     // Ubah tanggal ini sesuai tanggal peluncuran sistem yang sebenarnya
-    const SYSTEM_START_DATE = '2025-11-01'; 
+    const SYSTEM_START_DATE = '2025-12-12'; 
 
     // 2. Query Hitung Tiket Closed per Teknisi
     // Filter Khusus:
     // - Status: CLOSED
     // - Waktu: Sejak SYSTEM_START_DATE
-    // - Kategori: MTEL, UMT, dan CENTRATAMA (FSI ada di dalam Centratama)
     // - SQUAT: TIDAK DIHITUNG
     
     const query = `
