@@ -792,36 +792,36 @@ function formatDateTimeForExcel(datetime) {
   return new Intl.DateTimeFormat('id-ID', options).format(date) + ' WIB';
 }
 
-// --- FITUR: LEADERBOARD PRODUKTIVITAS (TERFILTER) ---
+
+// --- FITUR: LEADERBOARD PRODUKTIVITAS (SEMUA TEKNISI) ---
 app.get('/api/productivity/leaderboard', async (req, res) => {
   try {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    // 1. Tentukan Tanggal Mulai Sistem (Hardcoded sesuai waktu deploy)
-    // Ubah tanggal ini sesuai tanggal peluncuran sistem yang sebenarnya
-    const SYSTEM_START_DATE = '2025-12-12'; 
+    // 1. Tentukan Tanggal Mulai Sistem
+    const SYSTEM_START_DATE = '2025-11-01'; 
 
-    // 2. Query Hitung Tiket Closed per Teknisi
-    // Filter Khusus:
-    // - Status: CLOSED
-    // - Waktu: Sejak SYSTEM_START_DATE
-    // - SQUAT: TIDAK DIHITUNG
+    // 2. Query Hitung Tiket Closed per Teknisi (ALL TECHNICIANS)
+    // Perubahan:
+    // - LEFT JOIN: Agar teknisi yang belum punya tiket tetap muncul (skor 0)
+    // - WHERE tech.is_active = 1: Hanya tampilkan teknisi yang masih aktif bekerja
+    // - Filter Tiket dipindah ke dalam ON clause agar LEFT JOIN bekerja benar
     
     const query = `
       SELECT 
         tech.nik, 
         tech.name, 
-        COUNT(tt.ticket_id) as total_closed
+        COUNT(t.id) as total_closed
       FROM technicians tech
-      JOIN ticket_technicians tt ON tech.nik = tt.technician_nik
-      JOIN tickets t ON tt.ticket_id = t.id
-      WHERE t.status = 'CLOSED' 
+      LEFT JOIN ticket_technicians tt ON tech.nik = tt.technician_nik
+      LEFT JOIN tickets t ON tt.ticket_id = t.id 
+        AND t.status = 'CLOSED' 
         AND DATE(t.last_update_time) >= ?
-        AND t.category IN ('MTEL', 'UMT', 'CENTRATAMA') 
+        AND t.category IN ('MTEL', 'UMT', 'CENTRATAMA')
+      WHERE tech.is_active = 1
       GROUP BY tech.nik, tech.name
       ORDER BY total_closed DESC
-      LIMIT 10
     `;
 
     const [leaderboard] = await db.query(query, [SYSTEM_START_DATE]);
@@ -836,13 +836,6 @@ app.get('/api/productivity/leaderboard', async (req, res) => {
     res.status(500).json({ error: 'Gagal memuat data leaderboard' });
   }
 });
-
-// Helper kecil untuk memformat tanggal di label periode (Opsional, taruh di paling bawah file api/index.js)
-function formatDateIndo(dateString) {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('id-ID', options);
-}
-
 
 
 module.exports = app;
