@@ -798,7 +798,7 @@ app.get('/api/productivity/leaderboard', async (req, res) => {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    const SYSTEM_START_DATE = '2025-11-01'; 
+    const SYSTEM_START_DATE = '2025-12-12'; 
 
     const formatDateIndo = (dateString) => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };

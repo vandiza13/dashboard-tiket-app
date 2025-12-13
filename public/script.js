@@ -1520,9 +1520,6 @@ function isToday(dateString) {
 }
 
 
-// --- public/script.js ---
-// --- public/script.js ---
-
 // 1. FUNGSI UTAMA (RENDER HALAMAN)
 async function fetchAndRenderLeaderboard() {
     const contentArea = document.getElementById('content-area');
