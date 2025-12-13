@@ -1521,7 +1521,9 @@ function isToday(dateString) {
 
 
 // --- public/script.js ---
+// --- public/script.js ---
 
+// 1. FUNGSI UTAMA (RENDER HALAMAN)
 async function fetchAndRenderLeaderboard() {
     const contentArea = document.getElementById('content-area');
     contentArea.innerHTML = `
@@ -1536,8 +1538,8 @@ async function fetchAndRenderLeaderboard() {
         
         const result = await response.json();
         const data = result.data;
-        // Default kategori jika data kosong
-        const categories = result.allCategories || ['MTEL', 'UMT', 'CENTRATAMA',]; 
+        // Default kategori (Tanpa SQUAT)
+        const categories = result.allCategories || ['MTEL', 'UMT', 'CENTRATAMA']; 
 
         if (data.length === 0) {
             contentArea.innerHTML = `<div class="alert alert-info text-center">Belum ada data produktivitas.</div>`;
@@ -1546,7 +1548,7 @@ async function fetchAndRenderLeaderboard() {
 
         const top3 = data.slice(0, 3);
 
-        // --- HEADER & PODIUM ---
+        // --- HEADER ---
         let html = `
             <div class="productivity-header mb-5 text-center position-relative overflow-hidden rounded-4 p-5">
                 <div class="header-bg-pattern"></div>
@@ -1558,13 +1560,14 @@ async function fetchAndRenderLeaderboard() {
                     <p class="text-white text-opacity-75 fs-5">Matriks distribusi tiket per kategori.</p>
                 </div>
             </div>
-
+            
             <div class="row justify-content-center align-items-end mb-5 podium-container g-3 g-md-4">
         `;
 
-        if (top3[1]) html += createPodiumCard(top3[1], 2);
-        if (top3[0]) html += createPodiumCard(top3[0], 1);
-        if (top3[2]) html += createPodiumCard(top3[2], 3);
+        // --- RENDER PODIUM (PANGGIL FUNGSI HELPER DI SINI) ---
+        if (top3[1]) html += createPodiumCard(top3[1], 2); // Juara 2 (Kiri)
+        if (top3[0]) html += createPodiumCard(top3[0], 1); // Juara 1 (Tengah)
+        if (top3[2]) html += createPodiumCard(top3[2], 3); // Juara 3 (Kanan)
 
         html += `</div>`;
 
@@ -1592,10 +1595,9 @@ async function fetchAndRenderLeaderboard() {
             const isTop3 = rank <= 3;
             const rankBadge = isTop3 ? `<i class="bi bi-trophy-fill text-warning me-1"></i>` : '';
             
-            // Buat sel untuk setiap kategori
+            // Cells per Kategori
             const categoryCells = categories.map(cat => {
                 const count = tech.categories[cat] || 0;
-                // Jika ada tiket, warnanya tebal. Jika 0, warnanya pudar.
                 const style = count > 0 ? 'fw-bold text-dark' : 'text-muted opacity-25';
                 return `<td class="text-center ${style}">${count > 0 ? count : '-'}</td>`;
             }).join('');
@@ -1630,4 +1632,67 @@ async function fetchAndRenderLeaderboard() {
     } catch (error) {
         contentArea.innerHTML = `<div class="alert alert-danger py-3 text-center">${error.message}</div>`;
     }
+}
+
+// 2. FUNGSI HELPER (INI YANG HILANG SEBELUMNYA)
+function createPodiumCard(tech, rank) {
+    let rankData = {};
+    
+    // Konfigurasi Tema Berdasarkan Ranking
+    switch(rank) {
+        case 1:
+            rankData = {
+                theme: 'gold',
+                icon: '👑',
+                rankLabel: '1st Place',
+                scaleClass: 'scale-up-center',
+                colSize: 'col-md-4 col-10 order-md-2 order-1'
+            };
+            break;
+        case 2:
+            rankData = {
+                theme: 'silver',
+                icon: '🥈',
+                rankLabel: '2nd Place',
+                scaleClass: 'scale-side',
+                colSize: 'col-md-3 col-10 order-md-1 order-2'
+            };
+            break;
+        case 3:
+            rankData = {
+                theme: 'bronze',
+                icon: '🥉',
+                rankLabel: '3rd Place',
+                scaleClass: 'scale-side',
+                colSize: 'col-md-3 col-10 order-md-3 order-3'
+            };
+            break;
+    }
+
+    return `
+        <div class="${rankData.colSize} mb-4 podium-item">
+            <div class="card border-0 shadow-lg podium-card theme-${rankData.theme} ${rankData.scaleClass} h-100 text-center overflow-hidden">
+                <div class="card-header-gradient pt-4 pb-5 position-relative">
+                     <div class="rank-badge-floating shadow-sm">${rankData.icon}</div>
+                     <h6 class="text-white text-uppercase letter-spacing-1 mb-0 opacity-75">${rankData.rankLabel}</h6>
+                </div>
+                
+                <div class="card-body position-relative mt-n4 bg-white rounded-top-4 pt-5">
+                    <div class="avatar-podium mx-auto mb-3 border-${rankData.theme} p-1 bg-white shadow-sm">
+                         <div class="avatar-inner bg-light text-dark fw-bolder fs-3">
+                            ${tech.name.charAt(0).toUpperCase()}
+                         </div>
+                    </div>
+                    
+                    <h5 class="fw-bolder text-dark mb-1 text-truncate px-2">${tech.name}</h5>
+                    <small class="text-muted d-block mb-4 fw-medium">${tech.nik}</small>
+                    
+                    <div class="score-container py-3 px-4 rounded-4 bg-light d-inline-block mx-auto border border-light-subtle">
+                        <span class="d-block text-muted text-uppercase small fw-bold mb-1 ls-1">Total Closed</span>
+                        <span class="score-number display-4 fw-bolder text-${rankData.theme}-dark">${tech.total_closed}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
