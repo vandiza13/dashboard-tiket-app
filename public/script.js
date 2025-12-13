@@ -1579,7 +1579,7 @@ async function fetchAndRenderLeaderboard() {
                 </div>
                 <div class="table-responsive px-2 pb-2">
                     <table class="table table-hover align-middle mb-0 custom-table">
-                        <thead class="bg-light bg-opacity-50 rounded-3 text-uppercase fs-7 text-muted">
+                        <thead>
                             <tr>
                                 <th class="ps-4" style="width: 5%">#</th>
                                 <th style="width: 35%">Teknisi</th>

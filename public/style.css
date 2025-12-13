@@ -690,3 +690,69 @@ footer a:hover { text-decoration: underline; color: #2563eb; }
     background-color: rgba(59, 130, 246, 0.02); /* Biru sangat muda */
     border-left: 1px dashed #e2e8f0;
 }
+
+/* ==================== ELEGANT MATRIX TABLE STYLES ==================== */
+
+/* 1. Header Tabel yang Kontras & Jelas */
+.custom-table thead {
+    background: linear-gradient(90deg, #1e293b 0%, #334155 100%); /* Gradasi Biru Tua */
+    color: #ffffff;
+}
+
+.custom-table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    padding: 1rem 0.5rem;
+    border: none; /* Hapus border bawaan */
+    vertical-align: middle;
+}
+
+/* Sudut membulat untuk header kiri & kanan */
+.custom-table thead th:first-child { border-top-left-radius: 10px; }
+.custom-table thead th:last-child { border-top-right-radius: 10px; }
+
+/* 2. Isi Tabel yang Rapi */
+.custom-table tbody td {
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+/* Efek Zebra Halus pada Baris */
+.custom-table tbody tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+/* Efek Hover Baris */
+.custom-table tbody tr:hover {
+    background-color: #e2e8f0 !important; /* Sedikit lebih gelap saat ditunjuk */
+    transform: scale(1.005); /* Efek zoom in sangat halus */
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 10;
+}
+
+/* 3. Highlight Kolom Total (Paling Kanan) */
+.custom-table td:last-child {
+    background-color: #eff6ff; /* Biru sangat muda */
+    color: #1e40af; /* Teks Biru Tua */
+    font-weight: 700;
+    font-size: 1rem;
+    border-left: 2px solid #fff; /* Pemisah putih */
+}
+
+/* Header untuk Kolom Total */
+.custom-table th:last-child {
+    background: #3b82f6 !important; /* Biru terang khusus header Total */
+    color: white;
+}
+
+/* Kategori yang bernilai 0 dibuat transparan */
+.custom-table td.text-muted.opacity-25 {
+    color: #cbd5e1 !important; /* Abu-abu sangat muda */
+    font-weight: 300;
+}
