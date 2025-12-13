@@ -1584,7 +1584,7 @@ async function fetchAndRenderLeaderboard() {
                                 <th class="ps-4" style="width: 5%">#</th>
                                 <th style="width: 35%">Teknisi</th>
                                 ${categories.map(cat => `<th class="text-center">${cat}</th>`).join('')}
-                                <th class="text-center text-primary fw-bold" style="width: 15%">TOTAL</th>
+                                <th class="text-center fw-bold" style="width: 15%">TOTAL TIKET MS</th>
                             </tr>
                         </thead>
                         <tbody>
