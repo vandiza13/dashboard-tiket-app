@@ -1522,15 +1522,12 @@ function isToday(dateString) {
 
 // --- public/script.js ---
 
-// --- FUNGSI PRODUKTIVITAS (DESAIN ELEGAN) ---
-
 async function fetchAndRenderLeaderboard() {
     const contentArea = document.getElementById('content-area');
-    // Loading state yang lebih bersih
     contentArea.innerHTML = `
         <div class="d-flex flex-column align-items-center justify-content-center py-5" style="min-height: 400px;">
             <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-            <h6 class="text-muted fw-medium">Mengkalkulasi performa tim...</h6>
+            <h6 class="text-muted fw-medium">Menganalisa kinerja tim...</h6>
         </div>`;
 
     try {
@@ -1539,155 +1536,98 @@ async function fetchAndRenderLeaderboard() {
         
         const result = await response.json();
         const data = result.data;
+        // Default kategori jika data kosong
+        const categories = result.allCategories || ['MTEL', 'UMT', 'CENTRATAMA',]; 
 
         if (data.length === 0) {
-            contentArea.innerHTML = `
-                <div class="text-center py-5">
-                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486754.png" width="120" class="mb-4 opacity-50" alt="No Data">
-                    <h5 class="text-muted">Belum ada data produktivitas untuk periode ini.</h5>
-                    <p class="text-muted small">${result.period}</p>
-                </div>`;
+            contentArea.innerHTML = `<div class="alert alert-info text-center">Belum ada data produktivitas.</div>`;
             return;
         }
 
         const top3 = data.slice(0, 3);
-        const rest = data.slice(3);
 
-        // --- HEADER SECTION ---
+        // --- HEADER & PODIUM ---
         let html = `
             <div class="productivity-header mb-5 text-center position-relative overflow-hidden rounded-4 p-5">
-                <div class="header-bg-pattern"></div> <div class="position-relative z-1">
+                <div class="header-bg-pattern"></div>
+                <div class="position-relative z-1">
                     <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 px-3 py-2 rounded-pill mb-3 backdrop-blur">
                         <i class="bi bi-calendar-check me-1"></i> ${result.period}
                     </span>
-                    <h2 class="fw-bolder text-white mb-2 display-6">Hall of Fame</h2>
-                    <p class="text-white text-opacity-75 fs-5">Merayakan dedikasi dan kerja keras tim lapangan.</p>
+                    <h2 class="fw-bolder text-white mb-2 display-6">Analisa Kinerja Teknisi</h2>
+                    <p class="text-white text-opacity-75 fs-5">Matriks distribusi tiket per kategori.</p>
                 </div>
             </div>
+
+            <div class="row justify-content-center align-items-end mb-5 podium-container g-3 g-md-4">
         `;
 
-        // --- PODIUM SECTION (TOP 3) ---
-        html += `<div class="row justify-content-center align-items-end mb-5 podium-container g-3 g-md-4">`;
-
-        // Urutan Render HTML: Juara 2 (Kiri), Juara 1 (Tengah), Juara 3 (Kanan)
         if (top3[1]) html += createPodiumCard(top3[1], 2);
         if (top3[0]) html += createPodiumCard(top3[0], 1);
         if (top3[2]) html += createPodiumCard(top3[2], 3);
 
-        html += `</div>`; // End row podium
+        html += `</div>`;
 
-        // --- SISANYA (LIST VIEW) ---
-        if (rest.length > 0) {
-            html += `
+        // --- TABEL MATRIKS DETAIL ---
+        html += `
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mt-4">
-                <div class="card-header bg-white border-0 py-4 px-4">
-                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-list-stars me-2 text-primary"></i>Peringkat Selanjutnya</h5>
+                <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-table me-2 text-primary"></i>Rincian Detail Tiket</h5>
                 </div>
                 <div class="table-responsive px-2 pb-2">
                     <table class="table table-hover align-middle mb-0 custom-table">
-                        <thead class="bg-light bg-opacity-50 rounded-3">
+                        <thead class="bg-light bg-opacity-50 rounded-3 text-uppercase fs-7 text-muted">
                             <tr>
-                                <th class="ps-4 text-muted fw-medium" style="width: 10%">Rank</th>
-                                <th class="text-muted fw-medium" style="width: 60%">Teknisi</th>
-                                <th class="text-end pe-4 text-muted fw-medium" style="width: 30%">Total Closed</th>
+                                <th class="ps-4" style="width: 5%">#</th>
+                                <th style="width: 35%">Teknisi</th>
+                                ${categories.map(cat => `<th class="text-center">${cat}</th>`).join('')}
+                                <th class="text-center text-primary fw-bold" style="width: 15%">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
-            `;
+        `;
+
+        data.forEach((tech, index) => {
+            const rank = index + 1;
+            const isTop3 = rank <= 3;
+            const rankBadge = isTop3 ? `<i class="bi bi-trophy-fill text-warning me-1"></i>` : '';
             
-            rest.forEach((tech, index) => {
-                const rank = index + 4;
-                html += `
-                    <tr>
-                        <td class="ps-4 fw-bold text-muted fs-5">#${rank}</td>
-                        <td>
-                            <div class="d-flex align-items-center py-1">
-                                <div class="avatar-circle small bg-light text-secondary border me-3 fw-bold">
-                                    ${tech.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <span class="fw-bold text-dark d-block">${tech.name}</span>
-                                    <small class="text-muted">${tech.nik}</small>
-                                </div>
+            // Buat sel untuk setiap kategori
+            const categoryCells = categories.map(cat => {
+                const count = tech.categories[cat] || 0;
+                // Jika ada tiket, warnanya tebal. Jika 0, warnanya pudar.
+                const style = count > 0 ? 'fw-bold text-dark' : 'text-muted opacity-25';
+                return `<td class="text-center ${style}">${count > 0 ? count : '-'}</td>`;
+            }).join('');
+
+            html += `
+                <tr>
+                    <td class="ps-4 fw-bold text-muted">${rank}</td>
+                    <td>
+                        <div class="d-flex align-items-center py-1">
+                            <div class="avatar-circle small bg-light text-secondary border me-3 fw-bold">
+                                ${tech.name.charAt(0).toUpperCase()}
                             </div>
-                        </td>
-                        <td class="text-end pe-4">
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fw-bold fs-6">
-                                ${tech.total_closed}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            });
+                            <div class="text-truncate" style="max-width: 220px;">
+                                <span class="fw-bold text-dark d-block">${rankBadge} ${tech.name}</span>
+                                <small class="text-muted" style="font-size: 0.75rem">${tech.nik}</small>
+                            </div>
+                        </div>
+                    </td>
+                    ${categoryCells}
+                    <td class="text-center">
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold fs-6">
+                            ${tech.total_closed}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
 
-            html += `</tbody></table></div></div>`;
-        }
-
+        html += `</tbody></table></div></div>`;
         contentArea.innerHTML = html;
 
     } catch (error) {
-        contentArea.innerHTML = `<div class="alert alert-danger py-3 rounded-3 text-center shadow-sm border-0 bg-danger bg-opacity-10 text-danger fw-medium"><i class="bi bi-exclamation-triangle-fill me-2"></i>${error.message}</div>`;
+        contentArea.innerHTML = `<div class="alert alert-danger py-3 text-center">${error.message}</div>`;
     }
-}
-
-function createPodiumCard(tech, rank) {
-    let rankData = {};
-    
-    // Konfigurasi berdasarkan ranking
-    switch(rank) {
-        case 1:
-            rankData = {
-                theme: 'gold',
-                icon: '👑',
-                rankLabel: '1st Place',
-                scaleClass: 'scale-up-center', // Kelas CSS untuk efek besar di tengah
-                colSize: 'col-md-4 col-10 order-md-2 order-1' // Tengah di desktop, Pertama di HP
-            };
-            break;
-        case 2:
-            rankData = {
-                theme: 'silver',
-                icon: '🥈',
-                rankLabel: '2nd Place',
-                scaleClass: 'scale-side',
-                colSize: 'col-md-3 col-10 order-md-1 order-2' // Kiri di desktop
-            };
-            break;
-        case 3:
-            rankData = {
-                theme: 'bronze',
-                icon: '🥉',
-                rankLabel: '3rd Place',
-                scaleClass: 'scale-side',
-                colSize: 'col-md-3 col-10 order-md-3 order-3' // Kanan di desktop
-            };
-            break;
-    }
-
-    return `
-        <div class="${rankData.colSize} mb-4 podium-item">
-            <div class="card border-0 shadow-lg podium-card theme-${rankData.theme} ${rankData.scaleClass} h-100 text-center overflow-hidden">
-                <div class="card-header-gradient pt-4 pb-5 position-relative">
-                     <div class="rank-badge-floating shadow-sm">${rankData.icon}</div>
-                     <h6 class="text-white text-uppercase letter-spacing-1 mb-0 opacity-75">${rankData.rankLabel}</h6>
-                </div>
-                
-                <div class="card-body position-relative mt-n4 bg-white rounded-top-4 pt-5">
-                    <div class="avatar-podium mx-auto mb-3 border-${rankData.theme} p-1 bg-white shadow-sm">
-                         <div class="avatar-inner bg-light text-dark fw-bolder fs-3">
-                            ${tech.name.charAt(0).toUpperCase()}
-                         </div>
-                    </div>
-                    
-                    <h5 class="fw-bolder text-dark mb-1 text-truncate px-2">${tech.name}</h5>
-                    <small class="text-muted d-block mb-4 fw-medium">${tech.nik}</small>
-                    
-                    <div class="score-container py-3 px-4 rounded-4 bg-light d-inline-block mx-auto border border-light-subtle">
-                        <span class="d-block text-muted text-uppercase small fw-bold mb-1 ls-1">Total Closed</span>
-                        <span class="score-number display-4 fw-bolder text-${rankData.theme}-dark">${tech.total_closed}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
 }

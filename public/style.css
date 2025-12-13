@@ -678,3 +678,15 @@ footer a:hover { text-decoration: underline; color: #2563eb; }
 .custom-table tbody tr:hover {
     background-color: #f8fafc; /* Hover sangat halus */
 }
+
+/* --- Additional Table Styles --- */
+.fs-7 {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px;
+}
+
+/* Kolom Total agar menonjol */
+.table td:nth-last-child(1) {
+    background-color: rgba(59, 130, 246, 0.02); /* Biru sangat muda */
+    border-left: 1px dashed #e2e8f0;
+}

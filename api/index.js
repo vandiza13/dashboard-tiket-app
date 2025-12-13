@@ -792,53 +792,79 @@ function formatDateTimeForExcel(datetime) {
   return new Intl.DateTimeFormat('id-ID', options).format(date) + ' WIB';
 }
 
-// --- FITUR: LEADERBOARD PRODUKTIVITAS (ALL TECHNICIANS - FIXED) ---
+// --- FITUR: LEADERBOARD & MATRIKS PRODUKTIVITAS (FILTER: NO SQUAT) ---
 app.get('/api/productivity/leaderboard', async (req, res) => {
   try {
     const user = await protect(req);
     restrictTo(user, ['Admin', 'User', 'View']);
 
-    // 1. Tentukan Tanggal Mulai Sistem
-    const SYSTEM_START_DATE = '2025-12-12'; 
+    const SYSTEM_START_DATE = '2025-11-01'; 
 
-    // --- Helper Format Tanggal (Ditaruh di dalam agar aman) ---
     const formatDateIndo = (dateString) => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
-    // ---------------------------------------------------------
 
-    // 2. Query Hitung Tiket Closed (LEFT JOIN)
-    // Menampilkan SEMUA teknisi (Aktif), walaupun belum ada tiket (skor 0)
+    // 1. Query Utama
+    // Filter Kategori: HANYA MTEL, UMT, CENTRATAMA (SQUAT dihapus)
     const query = `
       SELECT 
         tech.nik, 
-        tech.name, 
-        COUNT(t.id) as total_closed
+        tech.name,
+        t.category,
+        COUNT(t.id) as cat_count
       FROM technicians tech
       LEFT JOIN ticket_technicians tt ON tech.nik = tt.technician_nik
       LEFT JOIN tickets t ON tt.ticket_id = t.id 
         AND t.status = 'CLOSED' 
         AND DATE(t.last_update_time) >= ?
-        AND t.category IN ('MTEL', 'UMT', 'CENTRATAMA')
+        AND t.category IN ('MTEL', 'UMT', 'CENTRATAMA') 
       WHERE tech.is_active = 1
-      GROUP BY tech.nik, tech.name
-      ORDER BY total_closed DESC
+      GROUP BY tech.nik, tech.name, t.category
     `;
 
-    const [leaderboard] = await db.query(query, [SYSTEM_START_DATE]);
+    const [rows] = await db.query(query, [SYSTEM_START_DATE]);
+
+    // 2. Proses Data (Pivot)
+    const technicianMap = {};
+
+    rows.forEach(row => {
+        if (!technicianMap[row.nik]) {
+            technicianMap[row.nik] = {
+                nik: row.nik,
+                name: row.name,
+                total_closed: 0,
+                categories: {} 
+            };
+        }
+
+        if (row.category) {
+            technicianMap[row.nik].categories[row.category] = row.cat_count;
+            technicianMap[row.nik].total_closed += row.cat_count;
+        }
+    });
+
+    // Ubah ke Array dan Urutkan
+    const leaderboard = Object.values(technicianMap).map(tech => ({
+        nik: tech.nik,
+        name: tech.name,
+        total_closed: tech.total_closed,
+        categories: tech.categories
+    }));
+
+    leaderboard.sort((a, b) => b.total_closed - a.total_closed);
 
     res.json({
-      period: `Periode: Sejak Awal Sistem (${formatDateIndo(SYSTEM_START_DATE)})`,
-      data: leaderboard
+        period: `Periode: Sejak Awal Sistem (${formatDateIndo(SYSTEM_START_DATE)})`,
+        data: leaderboard,
+        // List kategori yang akan menjadi kolom tabel (Tanpa SQUAT)
+        allCategories: ['MTEL', 'UMT', 'CENTRATAMA'] 
     });
 
   } catch (error) {
     console.error('Leaderboard error:', error);
-    // Tampilkan pesan error asli agar kita tahu jika ada masalah SQL
     res.status(500).json({ error: error.message }); 
   }
 });
-
 
 module.exports = app;
