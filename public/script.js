@@ -455,7 +455,7 @@ async function fetchAndRenderStats() {
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header bg-white border-bottom-0">
-                        <span class="stats-section-title">Distribusi Sub-Kategori (Bulanan)</span>
+                        <span class="stats-section-title">Distribusi Jenis Tiket (Bulanan)</span>
                     </div>
                     <div class="card-body p-0">
                         <div style="height: 300px; padding: 15px;">
