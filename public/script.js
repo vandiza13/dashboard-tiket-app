@@ -1294,9 +1294,6 @@ function updateSubcategoryOptions(event) {
 
 // --- FUNGSI-FUNGSI CHART ---
 
-// --- FUNGSI-FUNGSI CHART (MODERN REDESIGN) ---
-
-// --- public/script.js ---
 
 function renderMonthlySubcategoryChart(data) {
     const ctx = document.getElementById('subcategoryChart');
@@ -1316,13 +1313,13 @@ function renderMonthlySubcategoryChart(data) {
         return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
     });
 
-    // 2. Generator Warna (Sedikit Transparan untuk Area)
-    function generateColor(index, alpha) {
-        const hue = (index * 137.508) % 360;
-        return `hsla(${hue}, 70%, 50%, ${alpha})`;
+    // 2. Generator Warna (Solid untuk Batang)
+    function generateColor(index) {
+        const hue = (index * 137.508) % 360; 
+        return `hsl(${hue}, 70%, 50%)`; // Hapus alpha agar warna solid & jelas
     }
 
-    // 3. Buat Dataset (Konfigurasi Area Chart)
+    // 3. Buat Dataset (Kembali ke Bar Chart)
     const datasets = subcategories.map((sub, index) => {
         return {
             label: sub || 'Lainnya',
@@ -1330,25 +1327,15 @@ function renderMonthlySubcategoryChart(data) {
                 const found = data.find(d => d.month === m && d.subcategory === sub);
                 return found ? found.count : 0;
             }),
-            // Warna Isi (Agak transparan)
-            backgroundColor: generateColor(index, 0.2), // Opacity 0.2 agar elegan
-            // Warna Garis (Solid)
-            borderColor: generateColor(index, 1),
-            borderWidth: 2,
-            
-            // Konfigurasi Area Chart
-            fill: true,         // Isi area bawah garis
-            tension: 0.4,       // Garis melengkung halus (Curved)
-            pointRadius: 3,     // Ukuran titik data
-            pointBackgroundColor: '#fff', // Titik putih bersih
-            pointBorderWidth: 2,
-            pointHoverRadius: 6, // Membesar saat di-hover
+            backgroundColor: generateColor(index),
+            borderRadius: 4, // Sudut membulat modern
+            barPercentage: 0.6, // Ukuran batang proporsional
         };
     });
 
     // 4. Render Chart
     subcategoryChart = new Chart(ctx, {
-        type: 'line', // Ubah tipe dasar jadi LINE
+        type: 'bar', // KEMBALI KE BAR CHART AGAR AKURAT
         data: {
             labels: formattedMonths,
             datasets: datasets
@@ -1357,7 +1344,7 @@ function renderMonthlySubcategoryChart(data) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: { top: 10, right: 20, left: 10, bottom: 0 }
+                padding: { top: 20, right: 20, left: 10, bottom: 0 }
             },
             plugins: {
                 legend: {
@@ -1367,29 +1354,19 @@ function renderMonthlySubcategoryChart(data) {
                         usePointStyle: true,
                         pointStyle: 'circle',
                         font: { family: 'Inter', size: 11, weight: '500' },
-                        color: '#475569',
                         padding: 15,
                         boxWidth: 8
                     }
                 },
                 tooltip: {
                     mode: 'index',
-                    intersect: false,
+                    intersect: false, // Tooltip muncul saat hover di area bulan (tidak harus pas di batang)
                     backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     titleFont: { family: 'Inter', size: 13, weight: '600' },
                     bodyFont: { family: 'Inter', size: 12 },
                     padding: 12,
-                    cornerRadius: 10,
-                    multiKeyBackground: 'rgba(0,0,0,0)',
+                    cornerRadius: 8,
                     callbacks: {
-                        labelColor: function(context) {
-                            return {
-                                borderColor: context.dataset.borderColor,
-                                backgroundColor: context.dataset.borderColor, // Pakai warna solid di tooltip
-                                borderWidth: 0,
-                                borderRadius: 2,
-                            };
-                        },
                         footer: function(tooltipItems) {
                             let total = 0;
                             tooltipItems.forEach(function(tooltipItem) {
@@ -1402,20 +1379,21 @@ function renderMonthlySubcategoryChart(data) {
             },
             scales: {
                 x: {
-                    grid: { display: false, drawBorder: false },
+                    stacked: true, // Wajib True
+                    grid: { display: false },
                     ticks: {
-                        font: { family: 'Inter', size: 11, weight: '500' },
+                        font: { family: 'Inter', size: 11 },
                         color: '#64748b'
                     }
                 },
                 y: {
-                    stacked: true, // Tumpuk area-nya (Stacked Area)
+                    stacked: true, // Wajib True agar bertumpuk rapi
                     beginAtZero: true,
                     grid: {
-                        color: '#e2e8f0',
-                        borderDash: [6, 6],
-                        drawBorder: false
+                        color: '#f1f5f9',
+                        borderDash: [5, 5]
                     },
+                    border: { display: false },
                     ticks: {
                         precision: 0,
                         font: { family: 'Inter', size: 11 },
